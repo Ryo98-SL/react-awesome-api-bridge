@@ -30,7 +30,10 @@ export default function Example1() {
                     BApi.invokeA = () => {
 
                     }
-                }}>
+                }}
+                        style={{background: 'orangered'}}
+
+                >
                     Try to reassign BApi.callA(not allowed intentionally, it will cause error)
                 </button>
             </div>

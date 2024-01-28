@@ -26,7 +26,8 @@ module.exports = {
         new HtmlWebpackPlugin({ inject: true, template: path.join(APP_PATH, 'index.html') }),
         new ForkTsCheckerWebpackPlugin(),
     ],
+    devtool: 'eval-source-map',
     devServer: {
-        open: true
+        open: true,
     }
 };
