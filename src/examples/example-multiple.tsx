@@ -1,15 +1,14 @@
 import createBridge from "../bridge";
-import {useEffect} from "react";
+import {useEffect, useState} from "react";
 
 
 export default function ExampleMultiple() {
 
     const {getAPI} = EMBridge.useTools();
     const BApi = getAPI('B');
-
-    useEffect(() => {
-
-    }, [])
+    EMBridge.useAPI('B', { onInit: (apiList) => {
+        console.log("=>(example-multiple.tsx:11) onInit", apiList);
+    }})
     return <div style={{width: 500, background: 'white', height: 'fit-content', padding: '20px', outline: '1px solid'}}>
         <button onClick={() => {
             getAPI('B').find(({id}) => id === '01')?.introduce?.();
@@ -31,22 +30,29 @@ function AComponent(){
     });
     return <div>
         AComponent <button onClick={() => {
-        getAPI('B').find(({id}) => id === '02')?.introduce?.();
+        const secondB = getAPI('B').find((api) => {
+            const {id} = api
+            return id === '02'
+        });
+        secondB?.introduce?.();
     }}>let second B introduce itself.</button>
     </div>
 }
 
 function BComponent(props: {id: string}){
     const {id} = props;
+    const [otherDesc, setOtherDesc] = useState('thank you');
+
     EMBridge.useRegister('B', {
         id,
         introduce(){
-            console.log(`${id}_B: My id is ${id}.`,);
+            console.log(`${id}_B: My id is ${id}, ${otherDesc}.`,);
         }
-    },[id])
+    },[id, otherDesc])
 
     return <div>
-        BComponent
+        {id} BComponent
+        <input value={otherDesc} onChange={(e) => setOtherDesc(e.target.value)}/>
     </div>
 }
 

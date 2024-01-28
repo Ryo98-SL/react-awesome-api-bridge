@@ -34,7 +34,7 @@ export default function Example1() {
                         style={{background: 'orangered'}}
 
                 >
-                    Try to reassign BApi.callA(not allowed intentionally, it will cause error)
+                    Try to reassign BApi.callA(don't do it)
                 </button>
             </div>
 
