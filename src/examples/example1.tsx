@@ -3,8 +3,11 @@ import {PropsWithChildren, useCallback, useEffect, useRef, useState} from "react
 
 export default function Example1() {
     const CApi = ExaBridge.useAPI('C');
-    const BApi = ExaBridge.useAPI('B');
-
+    const BApi = ExaBridge.useAPI('B', {
+        onInit: (api) => {
+            console.log("=>(example1.tsx:9) api", api.invokeA?.());
+        }
+    });
 
     return <>
         <div style={{width: 500, background: 'white', height: 'fit-content', padding: '20px', outline: '1px solid'}}>
@@ -12,7 +15,8 @@ export default function Example1() {
             <div style={{padding: 10}}>
                 <button onClick={() => {
                     CApi.move?.(5);
-                }}>Move C 5 unit
+                }}>
+                    Move C 5 unit
                 </button>
 
                 <button onClick={() => {
@@ -34,7 +38,7 @@ export default function Example1() {
                         style={{background: 'orangered'}}
 
                 >
-                    Try to reassign BApi.callA(don't do it)
+                    Try to reassign BApi.callA(Oh dear, don't do it)
                 </button>
             </div>
 
@@ -97,6 +101,7 @@ function BComponent() {
 function CComponent() {
     const [unit, setUnit] = useState<'px' | 'rem'>('px');
     const [position, setPosition] = useState(0);
+
     ExaBridge.useRegister('C', {
         move(delta){
             console.log(`C: Okay, move ${delta}${unit}`);
@@ -104,6 +109,7 @@ function CComponent() {
         },
         setUnit
     }, [position, unit]);
+
     useEffect(() => {
         console.log(`C: current unit is ${unit}`);
     }, [unit])

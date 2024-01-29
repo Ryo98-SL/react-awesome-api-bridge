@@ -43,7 +43,7 @@ type Payload = any;
 type APIParams = Record<string, any>;
 
 export type GetAPIHookOptions<A extends APIParams, N extends keyof A, O extends BridgeAPIOptions<A>> = {
-        onInit?: OnInit<Partial<A[N]>, MapMulti<O, N>>
+        onInit?:  ConditionByIsMulti< O, N, OnInit<Partial<A[N]>, true>, OnInit<Partial<A[N]>, false> >
     }
     & BaseHookOptions<A, O>;
 

@@ -1,21 +1,16 @@
 import createBridge from "../bridge";
-import {useEffect, useState} from "react";
+import {useEffect, useId, useState} from "react";
 
 
 export default function ExampleMultiple() {
-
+    const id = useId();
     const {getAPI} = EMBridge.useTools();
-    EMBridge.useAPI('B', { onInit: (api, initialized) => {
-            console.log("=>(example-multiple.tsx:19) api", api);
+    const [BIds, setBIds] = useState(['01', '02']);
+    const [newId, setNewId] = useState('');
 
+    EMBridge.useAPI('B', { onInit: (api, initialized) => {
+        console.log("=>(example-multiple.tsx:19) api", api);
         console.log("=>(example-multiple.tsx:11) initialized", initialized.length, initialized);
-        // const B1Api = initialized.find((api) => {
-        //     console.log("=>(example-multiple.tsx:12) api", api);
-        //     return api.id === '01'
-        // });
-        // if(B1Api) {
-        //     console.log("B1Api has been init");
-        // }
     }})
 
 
@@ -23,21 +18,51 @@ export default function ExampleMultiple() {
         <button onClick={() => {
             getAPI('B').find(({id}) => id === '01')?.introduce?.();
         }}>
-            let first B introduce itself.
+            let B with id of 01 introduce itself.
         </button>
+
+        <div>
+            <label>
+                new id:
+                <input value={newId}
+                       onKeyUp={(e) => {
+                           if(BIds.includes(newId) || e.key !== 'Enter') return;
+                            setBIds([...BIds, newId])
+                       }}
+                       onChange={(e) => setNewId(e.target.value)}/></label>
+            <button onClick={() => {
+                if(BIds.includes(newId)) return;
+                setBIds([...BIds, newId])
+            }}
+
+            >
+                add
+            </button>
+        </div>
         <AComponent/>
-        <BComponent id={'01'}/>
-        <BComponent id={'02'}/>
+
+        {
+            BIds.map((id) => {
+                return <BComponent key={id}
+                                   onDelete={() => {
+                                       setBIds(BIds.filter(_i => _i !== id))
+                                   }}
+                                   id={id}/>
+            })
+        }
     </div>
 }
 
 function AComponent(){
     const {getAPI} = EMBridge.useTools();
+    const id = useId();
+
     EMBridge.useRegister('A', {
         sing(){
-            console.log("A: sing",);
+            console.log("A: sing");
         }
     });
+
     return <div>
         AComponent <button onClick={() => {
         const secondB = getAPI('B').find((api) => {
@@ -45,11 +70,16 @@ function AComponent(){
             return id === '02'
         });
         secondB?.introduce?.();
-    }}>let second B introduce itself.</button>
+    }}> let B with id of 02 introduce itself.</button>
     </div>
 }
 
-function BComponent(props: {id: string}){
+interface BComponentProps {
+    onDelete: () => void;
+    id: string
+}
+
+function BComponent(props: BComponentProps){
     const {id} = props;
     const [otherDesc, setOtherDesc] = useState('thank you');
 
@@ -63,6 +93,7 @@ function BComponent(props: {id: string}){
     return <div>
         {id} BComponent
         <input value={otherDesc} onChange={(e) => setOtherDesc(e.target.value)}/>
+        <button onClick={props.onDelete}>delete</button>
     </div>
 }
 
