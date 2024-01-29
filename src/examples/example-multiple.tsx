@@ -5,10 +5,20 @@ import {useEffect, useState} from "react";
 export default function ExampleMultiple() {
 
     const {getAPI} = EMBridge.useTools();
-    const BApi = getAPI('B');
-    EMBridge.useAPI('B', { onInit: (apiList) => {
-        console.log("=>(example-multiple.tsx:11) onInit", apiList);
+    EMBridge.useAPI('B', { onInit: (api, initialized) => {
+            console.log("=>(example-multiple.tsx:19) api", api);
+
+        console.log("=>(example-multiple.tsx:11) initialized", initialized.length, initialized);
+        // const B1Api = initialized.find((api) => {
+        //     console.log("=>(example-multiple.tsx:12) api", api);
+        //     return api.id === '01'
+        // });
+        // if(B1Api) {
+        //     console.log("B1Api has been init");
+        // }
     }})
+
+
     return <div style={{width: 500, background: 'white', height: 'fit-content', padding: '20px', outline: '1px solid'}}>
         <button onClick={() => {
             getAPI('B').find(({id}) => id === '01')?.introduce?.();

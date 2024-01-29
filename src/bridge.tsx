@@ -9,7 +9,7 @@ import React, {
     useContext, useEffect, useId,
     useImperativeHandle,
     useMemo,
-    useRef
+    useRef, useState
 } from "react";
 import {
     APIParams,
@@ -20,7 +20,7 @@ import {
     BaseHookOptions,
     RootBoundaryAPI,
     RootBoundaryProps,
-    RootContext, ResolveAPI, ConditionByIsMulti
+    RootContextValue, ResolveAPI, ConditionByIsMulti, MapMulti
 } from "./types";
 
 const createBridge = <
@@ -39,9 +39,9 @@ export default createBridge;
 
 
 function genOutput<A extends APIParams,const O extends BridgeAPIOptions<A> = BridgeAPIOptions<A>>(bridgeOptions?: O) {
-    const BridgeContext = createContext<RootContext<A,O>>(null);
+    const BridgeContext = createContext<RootContextValue<A,O>>(null);
 
-    const initCbMap = new WeakMap<any, OnInit<any>[]>();
+    const initCbMap = new WeakMap<any, OnInit<any, any>[]>();
 
     function getIsMulti<N extends keyof A>(name: N) {
         return bridgeOptions?.[name]?.isMulti
@@ -49,31 +49,34 @@ function genOutput<A extends APIParams,const O extends BridgeAPIOptions<A> = Bri
 
     const _getApiDesc = <N extends keyof A>(name: N, source: Bridge<A, O>, silent = false) => {
         let isInitial = false;
-        const isMulti = getIsMulti(name);
         if(!source[name] && !silent) {
-            isInitial = true
+            isInitial = true;
+            const isMulti = getIsMulti(name);
             const apiInfo = ( isMulti ? [] as RefObject<A[N]>[] : createRef<A[N]>() ) as ConditionByIsMulti<O, N, RefObject<A[N]>[], RefObject<A[N]>>;
+
+            // @ts-ignore
+            const _proxy = new Proxy<ResolveAPI<A, O, N>>( apiInfo , {
+                get(target, p, receiver: any) {
+                    if(isMulti) {
+                        // @ts-ignore
+                        return source[name]!.api?.[p];
+                    }else {
+                        // @ts-ignore
+                        return source[name]!.api!.current?.[p];
+                    }
+                },
+            });
 
             source[name] = {
                 options: bridgeOptions?.[name],
-                api: apiInfo
+                api: apiInfo,
+                _proxy
             }
         }
 
-        // @ts-ignore
-        const _proxy = new Proxy<ResolveAPI<A, O, N>>( source[name]!.api! , {
-            get(target, p, receiver: any) {
-                if(isMulti) {
-                    // @ts-ignore
-                    return source[name]!.api?.[p];
-                }else {
-                    // @ts-ignore
-                    return source[name]!.api!.current?.[p];
-                }
-            },
-        });
 
-        return {_proxy, ref: source[name]!.api!, isInitial};
+
+        return {_proxy: source[name]!._proxy, ref: source[name]!.api!, isInitial};
     }
     const Boundary = forwardRef<
         RootBoundaryAPI<A, O>,
@@ -96,7 +99,7 @@ function genOutput<A extends APIParams,const O extends BridgeAPIOptions<A> = Bri
         },[props.payload]);
 
         const contextValue = useMemo(() => {
-            const final: RootContext<A,O> = props.contextValue || {
+            const final: RootContextValue<A,O> = props.contextValue || {
                 bridge,
                 parent,
                 payload: props.payload
@@ -110,26 +113,30 @@ function genOutput<A extends APIParams,const O extends BridgeAPIOptions<A> = Bri
     Boundary.displayName = 'Boundary';
 
 
-    const rootContextValue: RootContext<A, O> = {
+    const rootContextValue: RootContextValue<A, O> = {
         bridge: {},
         parent: null,
         payload: null
     }
 
-    const useInnerContext = (context?: RootContext<A, O>) => {
+    const useFinalContextValue = (contextValue?: RootContextValue<A, O>) => {
         const upperContext = useContext(BridgeContext);
-        const contextValue =  context || upperContext;
-        if(!contextValue) {
+        const inheritContextValue =  contextValue || upperContext;
+        if(!inheritContextValue) {
             return rootContextValue;
         }
-        return contextValue;
+        return inheritContextValue;
     }
 
-    function tryToInvoke<N extends keyof A, PAPI extends ResolveAPI<A, O, N>>(onInit: OnInit<PAPI> | undefined, api?: PAPI) {
-        if (onInit && api) {
-            if (api) {
-                onInit(api);
+    function tryToInvoke<N extends keyof A, PAPI extends ResolveAPI<A, O, N>>(name: N, onInit: OnInit<Partial<A[N]>, MapMulti<O, N>> | undefined, api?: PAPI) {
+        if (onInit) {
+            const isMulti = getIsMulti(name) ?? false;
+            if (api && !isMulti) {
+                (onInit as OnInit<Partial<A[N]>, false>)(api as Partial<A[N]>);
+            } else if(api && api.length && isMulti){
+                (onInit as OnInit<Partial<A[N]>, true>)(undefined, api as Partial<A[N]>[]);
             } else {
+                console.log("=>(bridge.tsx:137) cache", name, api);
                 const arr = initCbMap.get(api);
                 if (typeof arr === 'undefined') {
                     initCbMap.set(api, [onInit]);
@@ -141,32 +148,43 @@ function genOutput<A extends APIParams,const O extends BridgeAPIOptions<A> = Bri
     }
 
     const useAPI = <N extends keyof A, >(name: N, hookOptions?: GetAPIHookOptions<A, N, O>) => {
-        const {onInit, context} = hookOptions || {};
-        const contextValue = useInnerContext(context);
+        const {onInit, contextValue: _outerContextValue} = hookOptions || {};
+        const contextValue = useFinalContextValue(_outerContextValue);
         return useMemo(() => {
-            const _api = _getApiDesc(name, contextValue!.bridge)._proxy;
-            tryToInvoke(onInit, _api);
-            return _api;
-        }, []);
+            const {_proxy, ref} = _getApiDesc(name, contextValue!.bridge);
+            tryToInvoke(name, onInit, _proxy);
+            return _proxy;
+        }, [name, contextValue]);
     };
 
 
     const useRegister = <N extends keyof A, T extends A[N]>(name: N, api: T, deps?: DependencyList, hookOptions?: BaseHookOptions<A, O>) => {
-        const {context} = hookOptions || {};
+        const {contextValue: _outerContextValue} = hookOptions || {};
 
         const isMulti = getIsMulti(name);
-        const contextValue = useInnerContext(context);
-        const hookId = useHookId();
-        const {ref} = useMemo(() => _getApiDesc(name, contextValue!.bridge),[name, contextValue]);
+        const contextValue = useFinalContextValue(_outerContextValue);
+        const {ref, _proxy} = useMemo(() => _getApiDesc(name, contextValue!.bridge),[name, contextValue]);
 
-        const hasInitialized = useRef(false);
+        // const hasInitialized = useRef(false);
         const {ref: elRef} = useUniqueElementRef(ref);
+        const [hasInitialized, setHasInitialized] = useState(false);
+        useEffect(() => {
+            if(!hasInitialized) return;
+                initCbMap.get(_proxy)?.forEach(cb => {
+                    if(isMulti) {
+                        cb(api, _proxy as Partial<A[N]>[])
+                    } else {
+                        // @ts-ignore
+                        cb(api);
+                    }
+                });
+                initCbMap.delete(_proxy);
 
+
+        }, [hasInitialized]);
         useImperativeHandle(elRef, () => {
-            if (!hasInitialized.current) {
-                hasInitialized.current = true;
-                initCbMap.get(ref)?.forEach(cb => cb(api));
-                initCbMap.delete(ref);
+            if (!hasInitialized) {
+                setHasInitialized(true);
             }
 
             return api;
@@ -186,7 +204,7 @@ function genOutput<A extends APIParams,const O extends BridgeAPIOptions<A> = Bri
 
     return {
         Boundary,
-        useContextValue: (): RootContext<A, O> => {
+        useContextValue: (): RootContextValue<A, O> => {
             const parent = useContext(BridgeContext);
             return useMemo(() => {
                 return {
@@ -199,8 +217,8 @@ function genOutput<A extends APIParams,const O extends BridgeAPIOptions<A> = Bri
             return useRef<RootBoundaryAPI<A, O>>(null);
         },
         useTools: (hookOptions?: BaseHookOptions<A, O>) => {
-            const {context} = hookOptions || {};
-            const contextValue = useInnerContext(context);
+            const {contextValue: _outerContextValue} = hookOptions || {};
+            const contextValue = useFinalContextValue(_outerContextValue);
 
             const getAPI = useCallback(<N1 extends keyof A, >(_name: N1) => {
                 return _getApiDesc(_name, contextValue.bridge)._proxy;
@@ -211,17 +229,16 @@ function genOutput<A extends APIParams,const O extends BridgeAPIOptions<A> = Bri
             }
         },
         useBoundaryPayload: (hookOptions?: BaseHookOptions<A,O>) => {
-            const {context} = hookOptions || {};
+            const {contextValue: _outerContextValue} = hookOptions || {};
+            const contextValue = useFinalContextValue(_outerContextValue);
 
-            const contextValue = useInnerContext(context);
             return contextValue.payload;
         },
         useRegister,
         useAPI,
         useAPIRecursively: <N extends keyof A>(name: N, hookOptions?: GetAPIHookOptions<A, N, O>) => {
-            const {context, onInit} = hookOptions || {};
-
-            const contextValue = useInnerContext(context);
+            const {onInit, contextValue: _outerContextValue} = hookOptions || {};
+            const contextValue = useFinalContextValue(_outerContextValue);
 
             const visitedAPISet = useRef(new Set<any>());
 
@@ -234,7 +251,7 @@ function genOutput<A extends APIParams,const O extends BridgeAPIOptions<A> = Bri
 
                 const _api = parent ? _getApiDesc(name, parent.bridge)._proxy : undefined;
                 if (!visitedAPISet.current.has(_api)) {
-                    tryToInvoke(onInit, _api);
+                    tryToInvoke(name, onInit, _api);
                     visitedAPISet.current.add(_api);
                 }
 
@@ -254,17 +271,20 @@ function useHookId(){
 
 function useUniqueElementRef<T>(entity: RefObject<T>[] | RefObject<T>){
     const elRef = useRef<T>(null);
-    const _proxy = proxyRef(elRef);
-
+    const _proxyRef = useRef< RefObject<T> | null>(null)
 
     useEffect(() => {
+        const _proxy = proxyRef(elRef);
+        _proxyRef.current = _proxy;
         if(Array.isArray(entity)) {
             entity.push(_proxy);
         }
 
+        console.log("=>(bridge.tsx:287) t", entity);
         return () => {
+            console.log("=>(bridge.tsx:287) b", entity);
             if(Array.isArray(entity)) {
-                const deleteIndex = entity.findIndex(r => r === _proxy);
+                const deleteIndex = entity.findIndex(r => r === _proxyRef.current);
                 entity.splice(deleteIndex, 1);
             }
         }
@@ -272,7 +292,7 @@ function useUniqueElementRef<T>(entity: RefObject<T>[] | RefObject<T>){
 
 
     return {
-        _proxy,
+        _proxy: _proxyRef.current!,
         ref: Array.isArray(entity) ? elRef : entity
     }
 }
