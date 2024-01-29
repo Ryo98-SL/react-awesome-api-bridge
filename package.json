@@ -7,8 +7,8 @@
     "type-check:watch": "npm run type-check -- --watch",
     "build": "npm run build:types && npm run build:js",
     "build:types": "tsc --emitDeclarationOnly",
-    "build:js": "babel src --out-dir lib --extensions \".ts,.tsx\" --source-maps inline",
-    "start": "webpack s --config ./webpack.config.js --mode=development"
+    "build:js": "babel src/bridge.tsx --out-dir lib --extensions \".ts,.tsx\" --source-maps inline",
+    "start": "webpack s --config ./webpack.config.js --env mode=development"
   },
   "dependencies": {
     "@types/react": "^18.2.48",

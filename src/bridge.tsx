@@ -274,14 +274,6 @@ function genOutput<A extends APIParams,const O extends BridgeAPIOptions<A> = Bri
     };
 }
 
-const APIListSet = new Set<any[]>();
-
-function useHookId(){
-    return useMemo(() => {
-        return Date.now();
-    },[])
-}
-
 function useUniqueElementRef<T>(entity: RefObject<T>[] | RefObject<T>){
     const elRef = useRef<T>(null);
     const _proxyRef = useRef< RefObject<T> | null>(null);
