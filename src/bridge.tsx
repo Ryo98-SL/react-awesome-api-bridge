@@ -129,29 +129,24 @@ function genOutput<A extends APIParams,const O extends BridgeAPIOptions<A> = Bri
     }
 
     function tryToInvoke<N extends keyof A, PAPI extends ResolveAPI<A, O, N>>(name: N, onInit: OnInit<Partial<A[N]>, MapMulti<O, N>> | undefined, api?: PAPI) {
-        function cacheInMap() {
-            if(!onInit) return;
-            const arr = initCbMap.get(api);
-            if (typeof arr === 'undefined') {
-                initCbMap.set(api, [onInit]);
-            } else {
-                arr.push(onInit);
-            }
+        if(!onInit) return;
+
+        const isMulti = getIsMulti(name) ?? false;
+        if (api && !isMulti) {
+            (onInit as OnInit<Partial<A[N]>, false>)(api as Partial<A[N]>);
+        } else if(api && api.length && isMulti){
+            (onInit as OnInit<Partial<A[N]>, true>)(undefined, api as Partial<A[N]>[]);
         }
 
-        if (onInit) {
-            const isMulti = getIsMulti(name) ?? false;
-            if (api && !isMulti) {
-                (onInit as OnInit<Partial<A[N]>, false>)(api as Partial<A[N]>);
-            } else if(api && api.length && isMulti){
-                (onInit as OnInit<Partial<A[N]>, true>)(undefined, api as Partial<A[N]>[]);
-            }
-
-            cacheInMap()
+        const arr = initCbMap.get(api);
+        if (typeof arr === 'undefined') {
+            initCbMap.set(api, [onInit]);
+        } else {
+            arr.push(onInit);
         }
 
         return () => {
-            initCbMap.delete(api);
+            removeArrayElement(initCbMap.get(api), onInit);
         }
     }
 
@@ -284,7 +279,7 @@ function useUniqueElementRef<T>(entity: RefObject<T>[] | RefObject<T>){
         }
 
         return () => {
-            clearOldProxyRef(entity, _proxy)
+            removeArrayElement(entity, _proxy)
         }
     },[entity]);
 
@@ -294,7 +289,7 @@ function useUniqueElementRef<T>(entity: RefObject<T>[] | RefObject<T>){
     }
 }
 
-const clearOldProxyRef = <T,>(entity: RefObject<T>[] | RefObject<T>, _proxyRef: RefObject<T> | null) => {
+const removeArrayElement = <T,>(entity: T[] | T, _proxyRef: any)  => {
     if(Array.isArray(entity)) {
         const deleteIndex = entity.findIndex(r => r === _proxyRef);
         if(deleteIndex > -1) {
