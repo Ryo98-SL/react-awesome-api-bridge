@@ -9,10 +9,13 @@ export default function ExampleMultiple() {
     const [newId, setNewId] = useState('');
 
     EMBridge.useAPI('B', { onInit: (api, initialized) => {
-        console.log("=>(example-multiple.tsx:19) api", api);
-        console.log("=>(example-multiple.tsx:11) initialized", initialized.length, initialized);
+        console.log("(root) api", api, initialized.length, initialized);
+        return () => {
+
+        }
     }})
 
+    const [showA, setShowA] = useState(true);
 
     return <div style={{width: 500, background: 'white', height: 'fit-content', padding: '20px', outline: '1px solid'}}>
         <button onClick={() => {
@@ -22,24 +25,24 @@ export default function ExampleMultiple() {
         </button>
 
         <div>
-            <label>
-                new id:
-                <input value={newId}
-                       onKeyUp={(e) => {
-                           if(BIds.includes(newId) || e.key !== 'Enter') return;
-                            setBIds([...BIds, newId])
-                       }}
-                       onChange={(e) => setNewId(e.target.value)}/></label>
-            <button onClick={() => {
+            <form onSubmit={(e) => {
+                e.preventDefault();
                 if(BIds.includes(newId)) return;
-                setBIds([...BIds, newId])
-            }}
-
-            >
-                add
-            </button>
+                setBIds([...BIds, newId]);
+            }}>
+                <label>
+                    new id:
+                    <input value={newId} onChange={(e) => setNewId(e.target.value)}/>
+                </label>
+                <button>
+                    add
+                </button>
+            </form>
         </div>
-        <AComponent/>
+
+        <button onClick={() => setShowA(!showA)}>toggle A</button>
+        {showA && <AComponent/>}
+
 
         {
             BIds.map((id) => {
@@ -55,7 +58,20 @@ export default function ExampleMultiple() {
 
 function AComponent(){
     const {getAPI} = EMBridge.useTools();
-    const id = useId();
+    const [prefix, setPrefix] = useState('foo');
+
+    EMBridge.useAPI('B', {
+        onInit: (api, total) => {
+
+            // This callback will be invoked when it first mounted and lookup all previously mounted useRegister
+            // which have "B" of value of the first parameter, then it invoked as this form "onInit(undefined, total)",
+            // when follow-up useRegister which have "B" of value of the first parameter mounted, it will be invoked
+            // as this form "onInit(api, total)".
+            //
+            // When this callback is invoked, the subsequent state change won't make it call again.
+            console.log(`(A)_${prefix}`, api, total);
+        }
+    });
 
     EMBridge.useRegister('A', {
         sing(){
@@ -63,14 +79,27 @@ function AComponent(){
         }
     });
 
-    return <div>
-        AComponent <button onClick={() => {
-        const secondB = getAPI('B').find((api) => {
-            const {id} = api
-            return id === '02'
-        });
-        secondB?.introduce?.();
-    }}> let B with id of 02 introduce itself.</button>
+    return <div style={{outline: '1px solid', padding: 10}}>
+        AComponent
+        <div>
+            <button onClick={() => {
+                const secondB = getAPI('B').find((api) => {
+                    const {id} = api
+                    return id === '02'
+                });
+                secondB?.introduce?.();
+            }}> let B with id of 02 introduce itself.</button>
+        </div>
+
+        <div>
+            <form onSubmit={(e) => {
+                // console.log("=>(example-multiple.tsx:93) ", prefix);
+                e.preventDefault()
+            }}>
+                <input value={prefix} onChange={e => setPrefix(e.target.value)}/>
+                {/*<button>change</button>*/}
+            </form>
+        </div>
     </div>
 }
 
@@ -112,3 +141,5 @@ const EMBridge = createBridge<
         isMulti: true
     }
 })
+
+console.log(EMBridge)

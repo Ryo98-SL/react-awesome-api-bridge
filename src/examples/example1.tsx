@@ -9,6 +9,7 @@ export default function Example1() {
         }
     });
 
+
     return <>
         <div style={{width: 500, background: 'white', height: 'fit-content', padding: '20px', outline: '1px solid'}}>
             hello world!
@@ -40,6 +41,7 @@ export default function Example1() {
                 >
                     Try to reassign BApi.callA(Oh dear, don't do it)
                 </button>
+
             </div>
 
             <AComponent></AComponent>

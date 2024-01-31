@@ -5,9 +5,9 @@ interface APIOptions {
 }
 
 
+export type UnifyToBoolean<T> = T extends true ? true : false;
 export type MapMulti<O extends BridgeAPIOptions<APIParams>, N extends keyof O> = NonNullable<O[N]>['isMulti'];
 export type ConditionByIsMulti<O extends BridgeAPIOptions<APIParams> , N extends keyof O, X1, X2> = MapMulti<O, N> extends true ? X1 : X2;
-
 
 
 type ResolveAPI<A extends APIParams, O extends BridgeAPIOptions<A>, N> = ConditionByIsMulti<O, N, Partial<A[N]>[], Partial<A[N]>>;
@@ -15,7 +15,7 @@ type ResolveAPI<A extends APIParams, O extends BridgeAPIOptions<A>, N> = Conditi
 export type Bridge<A extends APIParams, O extends BridgeAPIOptions<A> = BridgeAPIOptions<A>> = {
     [N in keyof A]?: {
         options?: O[N],
-        api?: ConditionByIsMulti<O, N, RefObject<A[N]>[], RefObject<A[N]>> ,
+        apiNList?: ConditionByIsMulti<O, N, RefObject<A[N]>[], RefObject<A[N]>> ,
         _proxy: ResolveAPI<A, O, N>
     }
 }
@@ -50,3 +50,11 @@ export type GetAPIHookOptions<A extends APIParams, N extends keyof A, O extends 
 export type BaseHookOptions<A extends APIParams, O extends BridgeAPIOptions<A>> = {
     contextValue?: RootContextValue<A, O>;
 };
+
+
+
+type ResetReturn<F, NR> = F extends (...args:infer P) => any ? (...args: P) => NR : F;
+
+export interface HookId {
+
+}
