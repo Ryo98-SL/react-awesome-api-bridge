@@ -19,8 +19,9 @@ module.exports = (env) => {
             path: path.resolve(__dirname, 'dist'),
             filename: 'bridge.js',
             library:{
-                name: 'MyLibrary',
+                name: 'ReactAwesomeAPIBridge',
                 type: 'umd',
+                umdNamedDefine: true,
             }
 
         },

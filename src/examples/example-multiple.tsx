@@ -8,6 +8,10 @@ export default function ExampleMultiple() {
     const [BIds, setBIds] = useState(['01', '02']);
     const [newId, setNewId] = useState('');
 
+    EMBridge.useRegister('B', {
+        id: '03',
+        introduce: () =>  console.log('03 B')
+    }, []);
     EMBridge.useAPI('B', { onInit: (api, initialized) => {
         console.log("(root) api", api, initialized.length, initialized);
         return () => {

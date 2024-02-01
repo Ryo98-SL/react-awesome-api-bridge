@@ -8,7 +8,7 @@
     "build": "npm run build:types && npm run build:js",
     "build:types": "tsc --emitDeclarationOnly",
     "build:js": "babel src/bridge.tsx --out-dir lib --extensions \".ts,.tsx\" --source-maps inline",
-    "build:webpack": "webpack --config ./webpack.config.js --env mode=production",
+    "build:webpack": "webpack --config ./webpack.config.js --env mode=production && npm run build:types",
     "start": "webpack s --config ./webpack.config.js --env mode=development"
   },
   "dependencies": {

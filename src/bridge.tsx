@@ -143,7 +143,6 @@ function genOutput<A extends APIParams,const O extends BridgeAPIOptions<A> = Bri
         let clearEffectCallback: any;
         const isMulti = getIsMulti(name) ?? false;
         const involvedApiList: Partial<A[N]>[] = [];
-
         // cache callback for subsequent register _proxyApiNList
 
         let unHandle = false;
@@ -167,8 +166,7 @@ function genOutput<A extends APIParams,const O extends BridgeAPIOptions<A> = Bri
 
             involvedApiList.push(..._assertedApiList);
         } else {
-            unHandle = true
-            console.log("=>(bridge.tsx:168) unhandle", );
+            unHandle = true;
         }
 
         if(!unHandle && involvedApiList.every((_proxyApi) => !initializedCallbacksMap.get(_proxyApi)?.includes(hookId) )) {
