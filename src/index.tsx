@@ -8,8 +8,8 @@ root.render(
     <>
         <StrictMode>
             <div style={{height: '100vh', width: '100vw', flexFlow: 'column', gap: 20, display: 'flex', alignItems: 'center', justifyContent: 'center'}}>
-                {/*<Example1/>*/}
-                <ExampleMultiple/>
+                <Example1/>
+                {/*<ExampleMultiple/>*/}
             </div>
         </StrictMode>
     </>
