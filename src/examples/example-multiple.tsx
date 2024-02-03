@@ -14,9 +14,7 @@ export default function ExampleMultiple() {
     }, []);
     EMBridge.useAPI('B', { onInit: (api, initialized) => {
         console.log("(root) api", api, initialized.length, initialized);
-        return () => {
 
-        }
     }})
 
     const [showA, setShowA] = useState(true);

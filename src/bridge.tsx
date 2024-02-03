@@ -15,25 +15,28 @@ import React, {
 import {
     APIParams,
     BaseHookOptions,
+    BoundaryContextValue,
     Bridge,
     BridgeAPIOptions,
     ConditionByIsMulti,
     GetAPIHookOptions,
+    GetUpperAPIHookOptions,
     HookId,
     MapMulti,
     OnInit,
     ResolveAPI,
-    RootBoundaryAPI,
-    RootBoundaryProps,
-    RootContextValue
+    BoundaryAPI,
+    BoundaryProps,
+    UpperHookOptions
 } from "./types";
 
 const createBridge = <
     A extends APIParams,
+    P = any
 >() => {
-    const output = genOutput<A>();
+    const output = genOutput<A, P>();
     const currying = <O extends BridgeAPIOptions<A>>(options?: O) => {
-        return genOutput<A, O>(options);
+        return genOutput<A, P, O>(options);
     };
 
     return Object.assign(currying, output);
@@ -43,8 +46,8 @@ export default createBridge;
 
 
 
-function genOutput<A extends APIParams,const O extends BridgeAPIOptions<A> = BridgeAPIOptions<A>>(bridgeOptions?: O) {
-    const BridgeContext = createContext<RootContextValue<A,O>>(null);
+function genOutput<A extends APIParams,P = any, const O extends BridgeAPIOptions<A> = BridgeAPIOptions<A>>(bridgeOptions?: O) {
+    const BridgeContext = createContext<BoundaryContextValue<A,P,O>>(null);
 
     const cacheInitCbMap = new Map<any, {
         onInit: OnInit<any, boolean>;
@@ -87,8 +90,8 @@ function genOutput<A extends APIParams,const O extends BridgeAPIOptions<A> = Bri
         return {_proxy: source[name]!._proxy, ref: source[name]!.apiNList!, isInitial};
     }
     const Boundary = forwardRef<
-        RootBoundaryAPI<A, O>,
-        PropsWithChildren<RootBoundaryProps<A, O>>
+        BoundaryAPI<A, O, P>,
+        PropsWithChildren<BoundaryProps<A,P, O>>
     >((props, ref) => {
         const _ownBridge = useMemo(() => ({}), []);
         const bridge: Bridge<A, O> = props.contextValue?.bridge || _ownBridge;
@@ -107,7 +110,7 @@ function genOutput<A extends APIParams,const O extends BridgeAPIOptions<A> = Bri
         },[props.payload]);
 
         const contextValue = useMemo(() => {
-            const final: RootContextValue<A,O> = props.contextValue || {
+            const final: BoundaryContextValue<A,P,O> = props.contextValue || {
                 bridge,
                 parent,
                 payload: props.payload
@@ -121,17 +124,16 @@ function genOutput<A extends APIParams,const O extends BridgeAPIOptions<A> = Bri
     Boundary.displayName = 'Boundary';
 
 
-    const rootContextValue: RootContextValue<A, O> = {
+    const boundaryContextValue: BoundaryContextValue<A,P, O> = {
         bridge: {},
         parent: null,
-        payload: null
     }
 
-    const useFinalContextValue = (contextValue?: RootContextValue<A, O>) => {
+    const useFinalContextValue = (contextValue?: BoundaryContextValue<A,P, O>) => {
         const upperContext = useContext(BridgeContext);
         const inheritContextValue =  contextValue || upperContext;
         if(!inheritContextValue) {
-            return rootContextValue;
+            return boundaryContextValue;
         }
         return inheritContextValue;
     }
@@ -189,17 +191,17 @@ function genOutput<A extends APIParams,const O extends BridgeAPIOptions<A> = Bri
     const useAPI = <N extends keyof A, >(name: N, hookOptions?: GetAPIHookOptions<A, N, O>) => {
         const {onInit, contextValue: _outerContextValue} = hookOptions || {};
         const contextValue = useFinalContextValue(_outerContextValue);
-        const {_proxy, ref} = _getApiDesc(name, contextValue!.bridge);
+        const {_proxy: _apiNListProxy, ref} = _getApiDesc(name, contextValue!.bridge);
         const hookId = useHookId();
 
         useEffect(() => {
             if(!onInit) return;
-            return mountHookInitEffect(name, onInit, _proxy, hookId);
+            return mountHookInitEffect(name, onInit, _apiNListProxy, hookId);
         }, [name, onInit, contextValue]);
 
         useEffect(() => {
             if(!onInit) return;
-            const removeCachedCallback = appendToMappedValue(cacheInitCbMap, _proxy, {onInit, hookId});
+            const removeCachedCallback = appendToMappedValue(cacheInitCbMap, _apiNListProxy, {onInit, hookId});
 
             return () => {
                 removeCachedCallback();
@@ -209,7 +211,7 @@ function genOutput<A extends APIParams,const O extends BridgeAPIOptions<A> = Bri
         // update onInit callback
         useEffect(() => {
             if(!onInit) return;
-            const cacheCbs = cacheInitCbMap.get(_proxy);
+            const cacheCbs = cacheInitCbMap.get(_apiNListProxy);
             cacheCbs?.map((couple) => {
                 if(couple.hookId === hookId) return {onInit, hookId};
                 return couple
@@ -223,7 +225,7 @@ function genOutput<A extends APIParams,const O extends BridgeAPIOptions<A> = Bri
                 });
             }
         }, []);
-        return _proxy;
+        return _apiNListProxy;
     };
 
 
@@ -291,7 +293,12 @@ function genOutput<A extends APIParams,const O extends BridgeAPIOptions<A> = Bri
 
     return {
         Boundary,
-        useContextValue: (): RootContextValue<A, O> => {
+        getContextValue (): BoundaryContextValue<A,P, O> {
+                return {
+                    bridge: {},
+                };
+        },
+        useContextValue: (): BoundaryContextValue<A,P, O> => {
             const parent = useContext(BridgeContext);
             return useMemo(() => {
                 return {
@@ -301,7 +308,7 @@ function genOutput<A extends APIParams,const O extends BridgeAPIOptions<A> = Bri
             }, []);
         },
         useBoundaryRef: () => {
-            return useRef<RootBoundaryAPI<A, O>>(null);
+            return useRef<BoundaryAPI<A, O>>(null);
         },
         useTools: (hookOptions?: BaseHookOptions<A, O>) => {
             const {contextValue: _outerContextValue} = hookOptions || {};
@@ -330,28 +337,50 @@ function genOutput<A extends APIParams,const O extends BridgeAPIOptions<A> = Bri
         useAPI,
         initCbMap: cacheInitCbMap,
         initializedCallbacksMap,
-        // useAPIRecursively: <N extends keyof A>(name: N, hookOptions?: GetAPIHookOptions<A, N, O>) => {
-        //     const {onInit, contextValue: _outerContextValue} = hookOptions || {};
-        //     const contextValue = useFinalContextValue(_outerContextValue);
-        //     const hookId = useHookId();
-        //     const visitedAPISet = useRef(new Set<any>());
-        //
-        //     return useCallback(() => {
-        //         let parent = contextValue;
-        //
-        //         while (parent && !_getApiDesc(name, parent.bridge, true).isInitial && parent.parent) {
-        //             parent = parent.parent;
-        //         }
-        //
-        //         const _api = parent ? _getApiDesc(name, parent.bridge)._proxy : undefined;
-        //         if (!visitedAPISet.current.has(_api)) {
-        //             mountHookInitEffect(name, onInit, _api, hookId);
-        //             visitedAPISet.current.add(_api);
-        //         }
-        //
-        //         return _api;
-        //     }, [onInit, contextValue, name]);
-        // }
+        useUpperAPI: <N extends keyof A>(name: N, hookOptions?: GetUpperAPIHookOptions<A, N, O>) => {
+            const {onInit, onBoundaryPeak} = hookOptions || {};
+            const contextValue = useFinalContextValue();
+            const hookId = useHookId();
+
+            let parent: BoundaryContextValue<A,P, O> | undefined = contextValue;
+            do{
+                parent = parent?.parent;
+                let keepGoing = false
+                if(parent) {
+                    onBoundaryPeak?.(parent,() => {
+                        keepGoing = true;
+                    })
+                }
+                if(!keepGoing) break;
+            } while (parent);
+
+            const _apiNListProxy = parent ? _getApiDesc(name, parent.bridge)._proxy : undefined;
+
+            useEffect(() => {
+                if(!onInit || !_apiNListProxy) return;
+                return mountHookInitEffect(name, onInit, _apiNListProxy, hookId);
+            }, []);
+
+            return _apiNListProxy;
+        },
+        useUpperBoundaryPayload:(hookOptions?: UpperHookOptions<A,O>) => {
+            const {onBoundaryPeak} = hookOptions || {};
+            let parent: BoundaryContextValue<A,P, O> | undefined = useFinalContextValue();
+
+            do{
+                parent = parent?.parent;
+                let keepGoing = false
+                if(parent) {
+                    onBoundaryPeak?.(parent,() => {
+                        keepGoing = true;
+                    })
+                }
+                if(!keepGoing) break;
+            } while (parent);
+
+
+            return parent?.payload;
+        }
     };
 }
 

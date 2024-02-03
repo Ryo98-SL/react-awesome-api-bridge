@@ -20,37 +20,44 @@ export type Bridge<A extends APIParams, O extends BridgeAPIOptions<A> = BridgeAP
     }
 }
 
-export type RootContextValue<A extends APIParams, O extends BridgeAPIOptions<A> = BridgeAPIOptions<A>> = {
+export type BoundaryContextValue<A extends APIParams, P = any, O extends BridgeAPIOptions<A> = BridgeAPIOptions<A>> = {
     bridge: Bridge<A, O>;
-    parent?: RootContextValue<A, O>;
-    payload?: Payload;
+    parent?: BoundaryContextValue<A,P, O>;
+    payload?: P;
 } | null;
-export type RootBoundaryProps<A extends APIParams, O extends BridgeAPIOptions<A> = BridgeAPIOptions<A>> = {
-    payload?: Payload;
-    contextValue?: RootContextValue<A, O>;
+export type BoundaryProps<A extends APIParams, P = any, O extends BridgeAPIOptions<A> = BridgeAPIOptions<A>> = {
+    payload?: P;
+    contextValue?: BoundaryContextValue<A,P, O>;
 }
-export type RootBoundaryAPI<A extends APIParams, O extends BridgeAPIOptions<A> = BridgeAPIOptions<A>> = {
+export type BoundaryAPI<A extends APIParams, O extends BridgeAPIOptions<A> = BridgeAPIOptions<A>, P = any> = {
     bridge: Bridge<A, O>,
-    payload?: Payload;
+    payload?: P;
     getAPI: <N extends keyof A>(name: N) => ResolveAPI<A,O, N>,
-    parent: RootContextValue<A, O> | undefined,
+    parent: BoundaryContextValue<A, P, O> | undefined,
 }
 export type OnInit<_A, M extends boolean | undefined> = M extends true ? (api:_A | undefined, others: _A[]) => void : (api: _A) => void;
 
 export type BridgeAPIOptions<A extends APIParams> = Partial<Record<keyof A, APIOptions>>;
 
-type Payload = any;
 export type APIParams = Record<string, any>;
 
-export type GetAPIHookOptions<A extends APIParams, N extends keyof A, O extends BridgeAPIOptions<A>> = {
-        onInit?:  ConditionByIsMulti< O, N, OnInit<Partial<A[N]>, true>, OnInit<Partial<A[N]>, false> >
-    }
-    & BaseHookOptions<A, O>;
+export interface BaseHookOptions<A extends APIParams, O extends BridgeAPIOptions<A> = BridgeAPIOptions<A>, P = any> {
+    contextValue?: BoundaryContextValue<A, P, O>;
+}
 
-export type BaseHookOptions<A extends APIParams, O extends BridgeAPIOptions<A>> = {
-    contextValue?: RootContextValue<A, O>;
+export interface GetAPIHookOptions<A extends APIParams, N extends keyof A, O extends BridgeAPIOptions<A>, P = any> extends BaseHookOptions<A, O, P>{
+    onInit?:  ConditionByIsMulti< O, N, OnInit<Partial<A[N]>, true>, OnInit<Partial<A[N]>, false>>
+
 };
 
+export interface UpperHookOptions<A extends APIParams, O extends BridgeAPIOptions<A> = BridgeAPIOptions<A>, P = any> {
+    onBoundaryPeak?: (contextValue: BoundaryContextValue<A ,P ,O>, next: () => void) => void
+}
+
+export interface GetUpperAPIHookOptions<A extends APIParams, N extends keyof A, O extends BridgeAPIOptions<A>, P = any> extends Omit<GetAPIHookOptions<A, N, O, P>, 'contextValue'>, UpperHookOptions<A, O, P>
+{
+
+}
 
 
 type ResetReturn<F, NR> = F extends (...args:infer P) => any ? (...args: P) => NR : F;
