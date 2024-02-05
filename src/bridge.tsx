@@ -140,7 +140,7 @@ function genOutput<A extends APIParams,P = any, const O extends BridgeAPIOptions
 
     const initializedCallbacksMap = new Map<Partial<A[keyof A]>, HookId[]>();
 
-    function mountHookInitEffect<N extends keyof A, ANL extends ResolveAPI<A, O, N>>(name: N, onInit: OnInit<Partial<A[N]>, MapMulti<O, N>> | undefined, _proxyApiNList: ANL, hookId: any) {
+    function mountHookInitEffect<N extends keyof A, ANL extends ResolveAPI<A, O, N>>(name: N, onInit: OnInit<A[N], MapMulti<O, N>> | undefined, _proxyApiNList: ANL, hookId: any) {
         if(!onInit) return;
         let clearEffectCallback: any;
         const isMulti = getIsMulti(name) ?? false;
@@ -150,8 +150,8 @@ function genOutput<A extends APIParams,P = any, const O extends BridgeAPIOptions
         let unHandle = false;
         let deferFn: (() => void) | undefined;
         if (_proxyApiNList && !isMulti) {
-            const _assertedApi = _proxyApiNList as Partial<A[N]>;
-            const _assertedOnInit = onInit as OnInit<Partial<A[N]>, false>;
+            const _assertedApi = _proxyApiNList as A[N];
+            const _assertedOnInit = onInit as OnInit<A[N], false>;
 
             deferFn = () => {
                 clearEffectCallback = _assertedOnInit(_assertedApi);
@@ -159,8 +159,8 @@ function genOutput<A extends APIParams,P = any, const O extends BridgeAPIOptions
 
             involvedApiList.push(_assertedApi)
         } else if(_proxyApiNList && _proxyApiNList.length && isMulti){
-            const _assertedApiList = _proxyApiNList as Partial<A[N]>[];
-            const _assertedOnInit = onInit as OnInit<Partial<A[N]>, true>;
+            const _assertedApiList = _proxyApiNList as A[N][];
+            const _assertedOnInit = onInit as OnInit<A[N], true>;
 
             deferFn = () => {
                 clearEffectCallback = _assertedOnInit(undefined, _assertedApiList);
@@ -251,11 +251,14 @@ function genOutput<A extends APIParams,P = any, const O extends BridgeAPIOptions
                 })
                     .map( initInfo => {
                         appendToMappedValue(initializedCallbacksMap, _proxyApiRef.current!, initInfo.hookId);
+                        const onInit = initInfo.onInit;
                         if (isMulti) {
-                            return () => initInfo.onInit(api, _proxy as Partial<A[N]>[]);
+                            const _assertedOnInit = onInit as OnInit<A[N], true>
+                            return () => _assertedOnInit(api, _proxy as A[N][]);
                         } else {
-                            // @ts-ignore
-                            return () => initInfo.onInit(api);
+                            const _assertedOnInit = onInit as OnInit<A[N], false>
+
+                            return () => _assertedOnInit(api);
                         }
                 });
 
@@ -293,10 +296,13 @@ function genOutput<A extends APIParams,P = any, const O extends BridgeAPIOptions
 
     return {
         Boundary,
-        getContextValue (): BoundaryContextValue<A,P, O> {
+        createContextValue (): BoundaryContextValue<A,P, O> {
                 return {
                     bridge: {},
                 };
+        },
+        useParent(){
+            return useContext(BridgeContext);
         },
         useContextValue: (): BoundaryContextValue<A,P, O> => {
             const parent = useContext(BridgeContext);
@@ -344,7 +350,6 @@ function genOutput<A extends APIParams,P = any, const O extends BridgeAPIOptions
 
             let parent: BoundaryContextValue<A,P, O> | undefined = contextValue;
             do{
-                parent = parent?.parent;
                 let keepGoing = false
                 if(parent) {
                     onBoundaryPeak?.(parent,() => {
@@ -352,6 +357,7 @@ function genOutput<A extends APIParams,P = any, const O extends BridgeAPIOptions
                     })
                 }
                 if(!keepGoing) break;
+                parent = parent?.parent;
             } while (parent);
 
             const _apiNListProxy = parent ? _getApiDesc(name, parent.bridge)._proxy : undefined;
@@ -368,7 +374,6 @@ function genOutput<A extends APIParams,P = any, const O extends BridgeAPIOptions
             let parent: BoundaryContextValue<A,P, O> | undefined = useFinalContextValue();
 
             do{
-                parent = parent?.parent;
                 let keepGoing = false
                 if(parent) {
                     onBoundaryPeak?.(parent,() => {
@@ -376,6 +381,7 @@ function genOutput<A extends APIParams,P = any, const O extends BridgeAPIOptions
                     })
                 }
                 if(!keepGoing) break;
+                parent = parent?.parent;
             } while (parent);
 
 

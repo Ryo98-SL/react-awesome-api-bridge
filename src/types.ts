@@ -35,7 +35,7 @@ export type BoundaryAPI<A extends APIParams, O extends BridgeAPIOptions<A> = Bri
     getAPI: <N extends keyof A>(name: N) => ResolveAPI<A,O, N>,
     parent: BoundaryContextValue<A, P, O> | undefined,
 }
-export type OnInit<_A, M extends boolean | undefined> = M extends true ? (api:_A | undefined, others: _A[]) => void : (api: _A) => void;
+export type OnInit<_A, M extends boolean | undefined> = M extends true ? (api: _A | undefined, total: _A[]) => void : (api: Partial<_A>) => void;
 
 export type BridgeAPIOptions<A extends APIParams> = Partial<Record<keyof A, APIOptions>>;
 
@@ -46,7 +46,7 @@ export interface BaseHookOptions<A extends APIParams, O extends BridgeAPIOptions
 }
 
 export interface GetAPIHookOptions<A extends APIParams, N extends keyof A, O extends BridgeAPIOptions<A>, P = any> extends BaseHookOptions<A, O, P>{
-    onInit?:  ConditionByIsMulti< O, N, OnInit<Partial<A[N]>, true>, OnInit<Partial<A[N]>, false>>
+    onInit?:  ConditionByIsMulti< O, N, OnInit<A[N], true>, OnInit<A[N], false>>
 
 };
 
