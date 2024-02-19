@@ -15,7 +15,9 @@ import React, {
 import {
     APIParams,
     BaseHookOptions,
+    BoundaryAPI,
     BoundaryContextValue,
+    BoundaryProps,
     Bridge,
     BridgeAPIOptions,
     ConditionByIsMulti,
@@ -25,8 +27,6 @@ import {
     MapMulti,
     OnInit,
     ResolveAPI,
-    BoundaryAPI,
-    BoundaryProps,
     UpperHookOptions
 } from "./types";
 
@@ -47,7 +47,10 @@ export default createBridge;
 
 
 function genOutput<A extends APIParams,P = any, const O extends BridgeAPIOptions<A> = BridgeAPIOptions<A>>(bridgeOptions?: O) {
-    const BridgeContext = createContext<BoundaryContextValue<A,P,O>>(null);
+    const BridgeContext = createContext<BoundaryContextValue<A,P,O>>({
+        bridge: {},
+        parent: undefined,
+    });
 
     const cacheInitCbMap = new Map<any, {
         onInit: OnInit<any, boolean>;
@@ -63,7 +66,8 @@ function genOutput<A extends APIParams,P = any, const O extends BridgeAPIOptions
         if(!source[name] && !silent) {
             isInitial = true;
             const isMulti = getIsMulti(name);
-            const apiNList = ( isMulti ? [] as RefObject<A[N]>[] : createRef<A[N]>() ) as ConditionByIsMulti<O, N, RefObject<A[N]>[], RefObject<A[N]>>;
+            const apiNList = ( isMulti ? [] as RefObject<A[N]>[]
+                : createRef<A[N]>() ) as ConditionByIsMulti<O, N, RefObject<A[N]>[], RefObject<A[N]>>;
 
             // @ts-ignore
             const _proxy = new Proxy<ResolveAPI<A, O, N>>( apiNList , {
@@ -84,8 +88,6 @@ function genOutput<A extends APIParams,P = any, const O extends BridgeAPIOptions
                 _proxy
             }
         }
-
-
 
         return {_proxy: source[name]!._proxy, ref: source[name]!.apiNList!, isInitial};
     }
@@ -110,9 +112,11 @@ function genOutput<A extends APIParams,P = any, const O extends BridgeAPIOptions
         },[props.payload]);
 
         const contextValue = useMemo(() => {
-            const final: BoundaryContextValue<A,P,O> = props.contextValue || {
-                bridge,
-                parent,
+            const final: BoundaryContextValue<A,P,O> = {
+                ...(props.contextValue || {
+                    bridge,
+                    parent,
+                }),
                 payload: props.payload
             };
 
@@ -123,24 +127,15 @@ function genOutput<A extends APIParams,P = any, const O extends BridgeAPIOptions
     });
     Boundary.displayName = 'Boundary';
 
-
-    const boundaryContextValue: BoundaryContextValue<A,P, O> = {
-        bridge: {},
-        parent: null,
-    }
-
     const useFinalContextValue = (contextValue?: BoundaryContextValue<A,P, O>) => {
         const upperContext = useContext(BridgeContext);
-        const inheritContextValue =  contextValue || upperContext;
-        if(!inheritContextValue) {
-            return boundaryContextValue;
-        }
-        return inheritContextValue;
+        return contextValue || upperContext;
     }
 
     const initializedCallbacksMap = new Map<Partial<A[keyof A]>, HookId[]>();
 
-    function mountHookInitEffect<N extends keyof A, ANL extends ResolveAPI<A, O, N>>(name: N, onInit: OnInit<A[N], MapMulti<O, N>> | undefined, _proxyApiNList: ANL, hookId: any) {
+    function mountHookInitEffect<N extends keyof A, ANL extends ResolveAPI<A, O, N>>
+    (name: N, onInit: OnInit<A[N], MapMulti<O, N>> | undefined, _proxyApiNList: ANL, hookId: any) {
         if(!onInit) return;
         let clearEffectCallback: any;
         const isMulti = getIsMulti(name) ?? false;
@@ -188,19 +183,25 @@ function genOutput<A extends APIParams,P = any, const O extends BridgeAPIOptions
         }
     }
 
-    const useAPI = <N extends keyof A, >(name: N, hookOptions?: GetAPIHookOptions<A, N, O>) => {
-        const {onInit, contextValue: _outerContextValue} = hookOptions || {};
-        const contextValue = useFinalContextValue(_outerContextValue);
-        const {_proxy: _apiNListProxy, ref} = _getApiDesc(name, contextValue!.bridge);
+    function useInitEffect<
+        O extends BridgeAPIOptions<A>,
+        N extends keyof A,
+        ANL extends ResolveAPI<A, O, N>
+    >(
+        onInit: OnInit<A[N], MapMulti<O, N>> | undefined,
+        name: N,
+        _apiNListProxy: ANL,
+        contextValue: BoundaryContextValue<A, P, O>
+    ) {
         const hookId = useHookId();
 
         useEffect(() => {
-            if(!onInit) return;
+            if (!onInit) return;
             return mountHookInitEffect(name, onInit, _apiNListProxy, hookId);
         }, [name, onInit, contextValue]);
 
         useEffect(() => {
-            if(!onInit) return;
+            if (!onInit) return;
             const removeCachedCallback = appendToMappedValue(cacheInitCbMap, _apiNListProxy, {onInit, hookId});
 
             return () => {
@@ -210,10 +211,10 @@ function genOutput<A extends APIParams,P = any, const O extends BridgeAPIOptions
 
         // update onInit callback
         useEffect(() => {
-            if(!onInit) return;
+            if (!onInit) return;
             const cacheCbs = cacheInitCbMap.get(_apiNListProxy);
-            cacheCbs?.map((couple) => {
-                if(couple.hookId === hookId) return {onInit, hookId};
+            cacheCbs?.forEach((couple) => {
+                if (couple.hookId === hookId) return {onInit, hookId};
                 return couple
             });
         }, [onInit]);
@@ -225,6 +226,14 @@ function genOutput<A extends APIParams,P = any, const O extends BridgeAPIOptions
                 });
             }
         }, []);
+    }
+
+    const useAPI = <N extends keyof A, >(name: N, hookOptions?: GetAPIHookOptions<A, N, O>) => {
+        const {onInit, contextValue: _outerContextValue} = hookOptions || {};
+        const contextValue = useFinalContextValue(_outerContextValue);
+        const {_proxy: _apiNListProxy, ref} = _getApiDesc(name, contextValue!.bridge);
+        useInitEffect(onInit, name, _apiNListProxy, contextValue);
+
         return _apiNListProxy;
     };
 
@@ -294,6 +303,26 @@ function genOutput<A extends APIParams,P = any, const O extends BridgeAPIOptions
         }, [getAPI, contextValue]);
     };
 
+    function getUpperContextValue(
+        parent: BoundaryContextValue<A,P, O>,
+        onBoundaryPeak?: (contextValue: BoundaryContextValue<A ,P ,O>, next: () => void) => void
+    )
+    {
+        do {
+            if(!parent.parent) break;
+            parent = parent.parent;
+
+            let keepGoing = false
+            if (parent) {
+                onBoundaryPeak?.(parent, () => {
+                    keepGoing = true;
+                })
+            }
+            if (!keepGoing) break;
+        } while (parent);
+        return parent;
+    }
+
     return {
         Boundary,
         createContextValue (): BoundaryContextValue<A,P, O> {
@@ -328,9 +357,27 @@ function genOutput<A extends APIParams,P = any, const O extends BridgeAPIOptions
                 return contextValue.payload;
             }, [contextValue.payload]);
 
+            const getUpperAPI = useCallback(<N1 extends keyof A, >(
+                _name: N1,
+                hookOptions: GetUpperAPIHookOptions<A, N1, O>
+            ) => {
+                const parent = getUpperContextValue(contextValue, hookOptions.onBoundaryPeak);
+                return _getApiDesc(_name, parent.bridge)._proxy;
+            }, []);
+
+            const getUpperBoundaryPayload = useCallback(<N1 extends keyof A, >(
+                _name: N1,
+                hookOptions: GetUpperAPIHookOptions<A, N1, O>
+            ) => {
+                const parent = getUpperContextValue(contextValue, hookOptions.onBoundaryPeak);
+                return parent.bridge;
+            }, []);
+
             return {
                 getAPI,
-                getBoundaryPayload
+                getBoundaryPayload,
+                getUpperAPI,
+                getUpperBoundaryPayload
             }
         },
         useBoundaryPayload: (hookOptions?: BaseHookOptions<A,O>) => {
@@ -346,46 +393,27 @@ function genOutput<A extends APIParams,P = any, const O extends BridgeAPIOptions
         useUpperAPI: <N extends keyof A>(name: N, hookOptions?: GetUpperAPIHookOptions<A, N, O>) => {
             const {onInit, onBoundaryPeak} = hookOptions || {};
             const contextValue = useFinalContextValue();
-            const hookId = useHookId();
 
-            let parent: BoundaryContextValue<A,P, O> | undefined = contextValue;
-            do{
-                let keepGoing = false
-                if(parent) {
-                    onBoundaryPeak?.(parent,() => {
-                        keepGoing = true;
-                    })
-                }
-                if(!keepGoing) break;
-                parent = parent?.parent;
-            } while (parent);
-
-            const _apiNListProxy = parent ? _getApiDesc(name, parent.bridge)._proxy : undefined;
-
-            useEffect(() => {
-                if(!onInit || !_apiNListProxy) return;
-                return mountHookInitEffect(name, onInit, _apiNListProxy, hookId);
+            const _apiNListProxy = useMemo(() => {
+                const parent = getUpperContextValue(contextValue, onBoundaryPeak);
+                return _getApiDesc(name, parent.bridge)._proxy;
             }, []);
+
+            useInitEffect(onInit, name, _apiNListProxy, contextValue);
+
 
             return _apiNListProxy;
         },
         useUpperBoundaryPayload:(hookOptions?: UpperHookOptions<A,O>) => {
             const {onBoundaryPeak} = hookOptions || {};
-            let parent: BoundaryContextValue<A,P, O> | undefined = useFinalContextValue();
+            let parent: BoundaryContextValue<A,P, O> = useFinalContextValue();
 
-            do{
-                let keepGoing = false
-                if(parent) {
-                    onBoundaryPeak?.(parent,() => {
-                        keepGoing = true;
-                    })
-                }
-                if(!keepGoing) break;
-                parent = parent?.parent;
-            } while (parent);
+            return useMemo(() => {
+                parent = getUpperContextValue(parent, onBoundaryPeak);
 
 
-            return parent?.payload;
+                return parent?.payload;
+            }, [])
         }
     };
 }

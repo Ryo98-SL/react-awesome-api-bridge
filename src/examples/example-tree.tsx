@@ -3,14 +3,13 @@ import createBridge from "../bridge";
 
 
 export default function ExampleTree() {
-
-
     return <div style={{width: 500, background: 'white', height: 'fit-content', padding: '20px', outline: '1px solid'}}>
         <TreeNode name={'Root'}>
             <TreeNode name={'Sub1'}>
                 <TreeNode name={'s1-1'}>
                     <TreeNode name={'s1-1-1'}></TreeNode>
                     <TreeNode name={'s1-1-2'}/>
+                    <CollapseRootNode/>
                 </TreeNode>
             </TreeNode>
             <TreeNode name={'Sub2'}>
@@ -25,7 +24,7 @@ export default function ExampleTree() {
 
 
 
-function TreeNode(props: PropsWithChildren<{name: ReactNode, effect?: () => void}>){
+function TreeNode(props: PropsWithChildren<{name: ReactNode}>){
     const [collapsed, setCollapsed] = useState(false);
     const [checked, setChecked] = useState(false);
     const [indeterminate, setIndeterminate] = useState(false);
@@ -87,12 +86,11 @@ function TreeNode(props: PropsWithChildren<{name: ReactNode, effect?: () => void
             });
         }
 
-
         parentNodeAPI?.updateCheckStatus?.();
     }, [checked, indeterminate]);
 
 
-    return <StackBridge.Boundary contextValue={contextValue}>
+    return <StackBridge.Boundary payload={props.name} contextValue={contextValue}>
         <div style={{display: 'flow-root'}}>
             <div style={{border: '1px solid #eee', outline: 'none', lineHeight: 2, display: 'block'}}>
                 <label>
@@ -105,12 +103,6 @@ function TreeNode(props: PropsWithChildren<{name: ReactNode, effect?: () => void
                 {props.children && <button onClick={setCollapsed.bind(null, (ps) => !ps)}>
                     {collapsed ? "expand" : "collapse"}
                 </button>}
-                {
-                    props.effect &&
-                    <button onClick={props.effect}>
-                        effect
-                    </button>
-                }
             </div>
 
             <div ref={contentNodeRef} style={{marginLeft: 10, overflow: 'hidden',transition: '.3s height'}}>
@@ -122,6 +114,21 @@ function TreeNode(props: PropsWithChildren<{name: ReactNode, effect?: () => void
     </StackBridge.Boundary>
 }
 
+function CollapseRootNode() {
+    const rootAPI = StackBridge.useUpperAPI('node', {
+        onBoundaryPeak: (contextValue, next) => {
+            if(contextValue && contextValue.payload !== 'Root') {
+                next();
+            }
+        }
+    });
+
+    function collapseRoot() {
+        rootAPI?.toggleCollapse?.(true);
+    }
+
+    return <button onClick={collapseRoot}>collapse root</button>
+}
 
 
 const StackBridge = createBridge<

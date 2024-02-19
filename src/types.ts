@@ -24,7 +24,7 @@ export type BoundaryContextValue<A extends APIParams, P = any, O extends BridgeA
     bridge: Bridge<A, O>;
     parent?: BoundaryContextValue<A,P, O>;
     payload?: P;
-} | null;
+};
 export type BoundaryProps<A extends APIParams, P = any, O extends BridgeAPIOptions<A> = BridgeAPIOptions<A>> = {
     payload?: P;
     contextValue?: BoundaryContextValue<A,P, O>;
