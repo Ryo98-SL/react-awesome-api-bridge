@@ -15,11 +15,12 @@ module.exports = (env) => {
      */
     const commonConfig = {
         output: {
+            globalObject: 'this',
             clean: true,
             path: path.resolve(__dirname, 'dist'),
             filename: 'bridge.js',
             library:{
-                name: 'ReactAwesomeAPIBridge',
+                name: 'RAABridge',
                 type: 'umd',
                 umdNamedDefine: true,
             }
