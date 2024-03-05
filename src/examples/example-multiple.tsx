@@ -8,10 +8,10 @@ export default function ExampleMultiple() {
     const [BIds, setBIds] = useState(['01', '02']);
     const [newId, setNewId] = useState('');
 
-    EMBridge.useRegister('B', {
+    EMBridge.useRegister('B', () => ({
         id: '03',
         introduce: () =>  console.log('03 B')
-    }, []);
+    }), []);
     EMBridge.useAPI('B', { onInit: (api, initialized) => {
         console.log("(root) api", api, initialized.length, initialized);
 
@@ -75,11 +75,11 @@ function AComponent(){
         }
     });
 
-    EMBridge.useRegister('A', {
+    EMBridge.useRegister('A', () => ({
         sing(){
             console.log("A: sing");
         }
-    });
+    }));
 
     return <div style={{outline: '1px solid', padding: 10}}>
         AComponent
@@ -114,12 +114,12 @@ function BComponent(props: BComponentProps){
     const {id} = props;
     const [otherDesc, setOtherDesc] = useState('thank you');
 
-    EMBridge.useRegister('B', {
+    EMBridge.useRegister('B', () => ({
         id,
         introduce(){
             console.log(`${id}_B: My id is ${id}, ${otherDesc}.`,);
         }
-    },[id, otherDesc])
+    }),[id, otherDesc])
 
     return <div>
         {id} BComponent

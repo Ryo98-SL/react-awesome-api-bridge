@@ -10,7 +10,7 @@ export type MapMulti<O extends BridgeAPIOptions<APIParams>, N extends keyof O> =
 export type ConditionByIsMulti<O extends BridgeAPIOptions<APIParams> , N extends keyof O, X1, X2> = MapMulti<O, N> extends true ? X1 : X2;
 
 
-export type ResolveAPI<A extends APIParams, O extends BridgeAPIOptions<A>, N extends keyof A> = ConditionByIsMulti<O, N, Partial<A[N]>[], Partial<A[N]>>;
+export type ResolveAPI<A extends APIParams, O extends BridgeAPIOptions<A>, N extends keyof A> = ConditionByIsMulti<O, N, A[N][], Partial<A[N]>>;
 
 export type Bridge<A extends APIParams, O extends BridgeAPIOptions<A> = BridgeAPIOptions<A>> = {
     [N in keyof A]?: {

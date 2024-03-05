@@ -57,7 +57,7 @@ export default function Example1() {
 function AComponent() {
     const timerRef = useRef<any>();
     const [content, setContent] = useState('');
-    ExaBridge.useRegister('A', {
+    ExaBridge.useRegister('A', () => ({
         bark() {
             let voice = 'Woof!Woof!';
             setContent(voice);
@@ -67,7 +67,7 @@ function AComponent() {
                 setContent('');
             }, 1000);
         }
-    }, []);
+    }), []);
 
 
     return <div style={{background: 'salmon'}}>
@@ -86,9 +86,9 @@ function BComponent() {
 
     }, []);
 
-    const {getAPI} = ExaBridge.useRegister('B', {
+    const {getAPI} = ExaBridge.useRegister('B', () => ({
         invokeA,
-    }, []);
+    }), []);
 
     return <div style={{background: 'lightcyan'}}>
         BComponent
@@ -104,13 +104,13 @@ function CComponent() {
     const [unit, setUnit] = useState<'px' | 'rem'>('px');
     const [position, setPosition] = useState(0);
 
-    ExaBridge.useRegister('C', {
+    ExaBridge.useRegister('C', () => ({
         move(delta){
             console.log(`C: Okay, move ${delta}${unit}`);
             setPosition(position + delta);
         },
         setUnit
-    }, [position, unit]);
+    }), [position, unit]);
 
     useEffect(() => {
         console.log(`C: current unit is ${unit}`);

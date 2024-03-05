@@ -238,7 +238,7 @@ function genOutput<A extends APIParams,P = any, const O extends BridgeAPIOptions
     };
 
 
-    const useRegister = <N extends keyof A, T extends A[N]>(name: N, api: T, deps?: DependencyList, hookOptions?: BaseHookOptions<A, O>) => {
+    const useRegister = <N extends keyof A, T extends A[N]>(name: N, init: () => T, deps?: DependencyList, hookOptions?: BaseHookOptions<A, O>) => {
         const {contextValue: _outerContextValue} = hookOptions || {};
 
         const isMulti = getIsMulti(name);
@@ -250,7 +250,7 @@ function genOutput<A extends APIParams,P = any, const O extends BridgeAPIOptions
 
         //init effect ---- start
         useImperativeHandle(apiRef, () => {
-            return api;
+            return init();
         }, deps);
         useEffect(() => {
             if (!hasInitialized.current) {
@@ -263,11 +263,11 @@ function genOutput<A extends APIParams,P = any, const O extends BridgeAPIOptions
                         const onInit = initInfo.onInit;
                         if (isMulti) {
                             const _assertedOnInit = onInit as OnInit<A[N], true>
-                            return () => _assertedOnInit(api, _proxy as A[N][]);
+                            return () => _assertedOnInit(apiRef.current!, _proxy as A[N][]);
                         } else {
                             const _assertedOnInit = onInit as OnInit<A[N], false>
 
-                            return () => _assertedOnInit(api);
+                            return () => _assertedOnInit(apiRef.current!);
                         }
                 });
 
@@ -390,21 +390,21 @@ function genOutput<A extends APIParams,P = any, const O extends BridgeAPIOptions
         useAPI,
         initCbMap: cacheInitCbMap,
         initializedCallbacksMap,
-        useUpperAPI: <N extends keyof A>(name: N, hookOptions?: GetUpperAPIHookOptions<A, N, O>) => {
+        useUpperAPI: <N extends keyof A>(name: N, hookOptions?: GetUpperAPIHookOptions<A, N, O>, deps?: DependencyList) => {
             const {onInit, onBoundaryPeak} = hookOptions || {};
             const contextValue = useFinalContextValue();
 
             const _apiNListProxy = useMemo(() => {
                 const parent = getUpperContextValue(contextValue, onBoundaryPeak);
                 return _getApiDesc(name, parent.bridge)._proxy;
-            }, []);
+            }, deps || []);
 
             useInitEffect(onInit, name, _apiNListProxy, contextValue);
 
 
             return _apiNListProxy;
         },
-        useUpperBoundaryPayload:(hookOptions?: UpperHookOptions<A,O>) => {
+        useUpperBoundaryPayload:(hookOptions?: UpperHookOptions<A,O>, deps?: DependencyList) => {
             const {onBoundaryPeak} = hookOptions || {};
             let parent: BoundaryContextValue<A,P, O> = useFinalContextValue();
 
@@ -413,7 +413,7 @@ function genOutput<A extends APIParams,P = any, const O extends BridgeAPIOptions
 
 
                 return parent?.payload;
-            }, [])
+            }, deps || [])
         }
     };
 }

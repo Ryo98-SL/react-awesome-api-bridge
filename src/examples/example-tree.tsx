@@ -73,8 +73,8 @@ function TreeNode(props: PropsWithChildren<{name: ReactNode}>){
         }
     };
 
-    StackBridge.useRegister('node', api, [collapsed, checked, indeterminate, props.name], {contextValue});
-    StackBridge.useRegister('leaf', api, [collapsed, checked, indeterminate, props.name]);
+    StackBridge.useRegister('node', () => api, [collapsed, checked, indeterminate, props.name], {contextValue});
+    StackBridge.useRegister('leaf', () => api, [collapsed, checked, indeterminate, props.name]);
 
     useEffect(() => {
         const checkboxNode = checkboxRef.current;
