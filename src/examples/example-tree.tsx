@@ -1,4 +1,4 @@
-import {PropsWithChildren, ReactNode, useEffect, useLayoutEffect, useRef, useState} from "react";
+import {PropsWithChildren, ReactNode, Ref, RefObject, useEffect, useLayoutEffect, useRef, useState} from "react";
 import createBridge from "../bridge";
 
 
@@ -39,11 +39,11 @@ function TreeNode(props: PropsWithChildren<{name: ReactNode}>){
     }, [props.children, collapsed]);
 
     const contextValue = StackBridge.useContextValue();
-    const leavesRef = useRef<Tree[]>([]);
+    const leavesRef = useRef<RefObject<Tree>[]>([]);
 
     const leafAPIList = StackBridge.useAPI('leaf', {
         onInit: (api, total) => {
-            leavesRef.current = total;
+            leavesRef.current = total
         },
         contextValue
     });
@@ -61,7 +61,8 @@ function TreeNode(props: PropsWithChildren<{name: ReactNode}>){
             const childNodes = leavesRef.current;
             let hasIndeterminate = false;
             const checkedSum = childNodes.reduce((sum, leaf) => {
-                const status = leaf.getStatus();
+                const status = leaf.current?.getStatus();
+                if(!status) return sum;
                 if(status.indeterminate) hasIndeterminate = true;
                 return sum + (status.checked ? 1 : 0)
             }, 0);
@@ -82,11 +83,11 @@ function TreeNode(props: PropsWithChildren<{name: ReactNode}>){
 
         if(!indeterminate) {
             leafAPIList.forEach((leaf) => {
-                leaf.toggleChecked?.(checked);
+                leaf.current?.toggleChecked(checked);
             });
         }
 
-        parentNodeAPI?.updateCheckStatus?.();
+        parentNodeAPI?.current?.updateCheckStatus();
     }, [checked, indeterminate]);
 
 
@@ -116,7 +117,7 @@ function TreeNode(props: PropsWithChildren<{name: ReactNode}>){
 
 function CollapseRootNode() {
     const rootAPI = StackBridge.useUpperAPI('node', {
-        onBoundaryPeak: (contextValue, next) => {
+        onBoundaryForward: (contextValue, next) => {
             if(contextValue && contextValue.payload !== 'Root') {
                 next();
             }
@@ -124,7 +125,7 @@ function CollapseRootNode() {
     });
 
     function collapseRoot() {
-        rootAPI?.toggleCollapse?.(true);
+        rootAPI?.current?.toggleCollapse(true);
     }
 
     return <button onClick={collapseRoot}>collapse root</button>
@@ -140,6 +141,6 @@ interface Tree {
         toggleCollapse: (state?: boolean) => void;
         toggleChecked: (state?: boolean) => void;
         getStatus: () => {checked: boolean, collapsed: boolean, indeterminate: boolean};
-        getLeaves: () => Tree[];
+        getLeaves: () => RefObject<Tree>[];
         updateCheckStatus():void;
 }

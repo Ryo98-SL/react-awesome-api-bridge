@@ -5,7 +5,7 @@ export default function Example1() {
     const CApi = ExaBridge.useAPI('C');
     const BApi = ExaBridge.useAPI('B', {
         onInit: (api) => {
-            console.log("=>(example1.tsx:9) api", api.invokeA?.());
+            console.log("=>(example1.tsx:9) api", api.current?.invokeA());
         }
     });
 
@@ -15,13 +15,13 @@ export default function Example1() {
             hello world!
             <div style={{padding: 10}}>
                 <button onClick={() => {
-                    CApi.move?.(5);
+                    CApi.current?.move(5);
                 }}>
                     Move C 5 unit
                 </button>
 
                 <button onClick={() => {
-                    CApi.setUnit?.('px');
+                    CApi.current?.setUnit('px');
                 }}>Set to px unit of C
                 </button>
 
@@ -29,12 +29,9 @@ export default function Example1() {
                 {/*<button onClick={BApi.current?.callA}>call A by proxying B</button>*/}
 
                 {/*Good,it will dynamic access "callA"  method and invoke once the arrow function of onClick is called*/}
-                <button onClick={() => BApi.invokeA?.()}>Indirectly invoke "bark" of A by invoking "invokeA" of B</button>
+                <button onClick={() => BApi.current?.invokeA()}>Indirectly invoke "bark" of A by invoking "invokeA" of B</button>
 
                 <button onClick={() => {
-                    BApi.invokeA = () => {
-
-                    }
                 }}
                         style={{background: 'orangered'}}
 
@@ -82,7 +79,7 @@ function BComponent() {
     const AApi = ExaBridge.useAPI('A');
     const invokeA = useCallback(() => {
         console.log("B: Hi, A, can you bark?" );
-        AApi.bark?.();
+        AApi.current?.bark();
 
     }, []);
 
@@ -95,7 +92,7 @@ function BComponent() {
         <button onClick={invokeA}>invoke A's bark</button>
         <button onClick={() => {
             console.log("B: Hi, C, can you move 10 units?" );
-            getAPI('C').move?.(10);
+            getAPI('C').current?.move(10);
         }}>invoke C's move</button>
     </div>
 }

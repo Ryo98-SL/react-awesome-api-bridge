@@ -21,7 +21,7 @@ export default function ExampleMultiple() {
 
     return <div style={{width: 500, background: 'white', height: 'fit-content', padding: '20px', outline: '1px solid'}}>
         <button onClick={() => {
-            getAPI('B').find(({id}) => id === '01')?.introduce?.();
+            getAPI('B').find((apiRef) => apiRef.current?.id === '01')?.current?.introduce();
         }}>
             let B with id of 01 introduce itself.
         </button>
@@ -86,10 +86,10 @@ function AComponent(){
         <div>
             <button onClick={() => {
                 const secondB = getAPI('B').find((api) => {
-                    const {id} = api
+                    const {id} = api.current || {}
                     return id === '02'
                 });
-                secondB?.introduce?.();
+                secondB?.current?.introduce();
             }}> let B with id of 02 introduce itself.</button>
         </div>
 
