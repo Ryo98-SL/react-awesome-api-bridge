@@ -8,6 +8,10 @@ export default function ExampleMultiple() {
     const [BIds, setBIds] = useState(['01', '02']);
     const [newId, setNewId] = useState('');
 
+    /**
+     * the register of 'B' is not limited within 'B' component,
+     * technically it can be register anywhere in component tree.
+     */
     EMBridge.useRegister('B', () => ({
         id: '03',
         introduce: () =>  console.log('03 B')
