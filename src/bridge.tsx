@@ -158,8 +158,8 @@ function genOutput<A extends APIParams,P = any, const O extends BridgeAPIOptions
              * not call again during current lifecycle of the component which include "useAPI" hook.
              * the returned clear function need to be called when component destroy.
              */
-            involvedApiList.forEach((_proxyApi) => {
-                appendToMappedValue(initializedCallbacksMap, _proxyApi , hookId);
+            involvedApiList.forEach((apiRef) => {
+                appendToMappedValue(initializedCallbacksMap, apiRef , hookId);
             });
         }
 
@@ -288,20 +288,20 @@ function genOutput<A extends APIParams,P = any, const O extends BridgeAPIOptions
     };
 
     function getUpperContextValue(
-        parent: BoundaryContextValue<A,P, O>,
+        start: BoundaryContextValue<A,P, O>,
         onBoundaryForward?: UpperHookOptions<A, O, P>['onBoundaryForward']
     )
     {
+        let parent = start;
         do {
-            if(!parent.parent) break;
+            if(!parent.parent || !onBoundaryForward) break;
             parent = parent.parent;
 
             let keepGoing = false;
-            if (parent) {
-                onBoundaryForward?.(parent, () => {
-                    keepGoing = true;
-                })
-            }
+            onBoundaryForward(parent, () => {
+                keepGoing = true;
+            });
+
             if (!keepGoing) break;
         } while (parent);
         return parent;
@@ -420,9 +420,9 @@ function useUniqueElementRef<T>(entity: RefObject<T>[] | RefObject<T>){
 
 }
 
-const removeArrayElement = <T,>(entity: T[] | T, _proxyRef: any)  => {
+const removeArrayElement = <T,>(entity: T[] | T, element: any)  => {
     if(Array.isArray(entity)) {
-        const deleteIndex = entity.findIndex(r => r === _proxyRef);
+        const deleteIndex = entity.findIndex(r => r === element);
         if(deleteIndex > -1) {
             entity.splice(deleteIndex, 1);
         }
