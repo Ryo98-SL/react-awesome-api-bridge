@@ -3,7 +3,7 @@ import React, {
     createRef,
     DependencyList,
     forwardRef,
-    PropsWithChildren, Ref,
+    PropsWithChildren,
     RefObject,
     useCallback,
     useContext,
@@ -24,7 +24,6 @@ import {
     GetAPIOptions,
     GetUpperAPIOptions,
     HookId,
-    MapMulti,
     OnInit, OnMultiInit,
     ResolveAPI, ResolveInit,
     UpperOptions
