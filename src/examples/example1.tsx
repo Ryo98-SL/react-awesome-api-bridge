@@ -83,9 +83,10 @@ function BComponent() {
 
     }, []);
 
-    const {getAPI} = ExaBridge.useRegister('B', () => ({
+    ExaBridge.useRegister('B', () => ({
         invokeA,
     }), []);
+    const {getAPI} = ExaBridge.useTools();
 
     return <div style={{background: 'lightcyan'}}>
         BComponent

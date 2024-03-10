@@ -29,7 +29,6 @@ export type BoundaryProps<A extends APIParams, P = any, O extends BridgeAPIOptio
     contextValue?: BoundaryContextValue<A,P, O>;
 }
 export type BoundaryAPI<A extends APIParams, O extends BridgeAPIOptions<A> = BridgeAPIOptions<A>, P = any> = {
-    bridge: Bridge<A, O>,
     payload?: P;
     getAPI: <N extends keyof A>(name: N) => ResolveAPI<A,O, N>,
     parent: BoundaryContextValue<A, P, O> | undefined,
@@ -44,20 +43,25 @@ export type BridgeAPIOptions<A extends APIParams> = Partial<Record<keyof A, APIO
 
 export type APIParams = Record<string, any>;
 
-export interface BaseHookOptions<A extends APIParams, O extends BridgeAPIOptions<A> = BridgeAPIOptions<A>, P = any> {
+export interface BaseOptions<A extends APIParams, O extends BridgeAPIOptions<A> = BridgeAPIOptions<A>, P = any> {
     contextValue?: BoundaryContextValue<A, P, O>;
 }
 
-export interface GetAPIHookOptions<A extends APIParams, N extends keyof A, O extends BridgeAPIOptions<A>, P = any> extends BaseHookOptions<A, O, P>{
+export interface GetAPIOptions<A extends APIParams, N extends keyof A, O extends BridgeAPIOptions<A>, P = any>
+    extends BaseOptions<A, O, P>
+{
     onInit?:  ResolveInit<A, O, N>;
 
 };
 
-export interface UpperHookOptions<A extends APIParams, O extends BridgeAPIOptions<A> = BridgeAPIOptions<A>, P = any> {
+export interface UpperOptions<A extends APIParams, O extends BridgeAPIOptions<A> = BridgeAPIOptions<A>, P = any>
+extends BaseOptions<A, O, P>
+{
     onBoundaryForward?: (contextValue: BoundaryContextValue<A ,P ,O>, next: () => void) => void
 }
 
-export interface GetUpperAPIHookOptions<A extends APIParams, N extends keyof A, O extends BridgeAPIOptions<A>, P = any> extends Omit<GetAPIHookOptions<A, N, O, P>, 'contextValue'>, UpperHookOptions<A, O, P>
+export interface GetUpperAPIOptions<A extends APIParams, N extends keyof A, O extends BridgeAPIOptions<A>, P = any>
+    extends GetAPIOptions<A, N, O, P>, UpperOptions<A, O, P>
 {
 
 }

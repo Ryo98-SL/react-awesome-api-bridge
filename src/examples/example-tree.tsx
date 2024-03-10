@@ -38,17 +38,17 @@ function TreeNode(props: PropsWithChildren<{name: ReactNode}>){
         contentNode.style.setProperty('height', height + 'px');
     }, [props.children, collapsed]);
 
-    const contextValue = StackBridge.useContextValue();
+    const contextValue = StackBridge.useChildContextValue();
     const leavesRef = useRef<RefObject<Tree>[]>([]);
 
-    const leafAPIList = StackBridge.useAPI('leaf', {
+    const leafAPIList = StackBridge.useAPI('node', {
         onInit: (api, total) => {
             leavesRef.current = total
         },
         contextValue
     });
 
-    const parentNodeAPI = StackBridge.useUpperAPI('node');
+    const parentNodeAPI = StackBridge.useAPI('parent');
 
     const api: Tree = {
         name: props.name,
@@ -74,8 +74,8 @@ function TreeNode(props: PropsWithChildren<{name: ReactNode}>){
         }
     };
 
-    StackBridge.useRegister('node', () => api, [collapsed, checked, indeterminate, props.name], {contextValue});
-    StackBridge.useRegister('leaf', () => api, [collapsed, checked, indeterminate, props.name]);
+    StackBridge.useRegister('parent', () => api, [collapsed, checked, indeterminate, props.name], {contextValue});
+    StackBridge.useRegister('node', () => api, [collapsed, checked, indeterminate, props.name]);
 
     useEffect(() => {
         const checkboxNode = checkboxRef.current;
@@ -116,7 +116,7 @@ function TreeNode(props: PropsWithChildren<{name: ReactNode}>){
 }
 
 function CollapseRootNode() {
-    const rootAPI = StackBridge.useUpperAPI('node', {
+    const rootAPI = StackBridge.useUpperAPI('parent', {
         onBoundaryForward: (contextValue, next) => {
             if(contextValue && contextValue.payload !== 'Root') {
                 next();
@@ -133,8 +133,8 @@ function CollapseRootNode() {
 
 
 const StackBridge = createBridge<
-    { node: Tree, leaf: Tree }
->()({leaf: {isMulti: true}});
+    { parent: Tree, node: Tree }
+>()({node: {isMulti: true}});
 
 interface Tree {
         name?: any;
