@@ -214,21 +214,16 @@ function genOutput<A extends APIParams,P = any, const O extends BridgeAPIOptions
 
     function _getUpperContextValue(
         start: BoundaryContextValue<A,P, O>,
-        onBoundaryForward?: UpperOptions<A, O, P>['onBoundaryForward']
+        shouldForwardYield?: UpperOptions<A, O, P>['shouldForwardYield']
     )
     {
         let parent = start.parent;
         while (true) {
             if(!parent) break;
             parent = parent.parent;
-            if(!onBoundaryForward || !parent) break;
+            if(!shouldForwardYield || !parent) break;
 
-            let keepGoing = false;
-            onBoundaryForward(parent, () => {
-                keepGoing = true;
-            });
-
-            if (!keepGoing) break;
+            if (!!shouldForwardYield(parent)) break;
         }
         return parent;
     }
@@ -237,7 +232,7 @@ function genOutput<A extends APIParams,P = any, const O extends BridgeAPIOptions
     function _getUpperApiDesc< N1 extends keyof A>(contextValue: BoundaryContextValue<A, P, O>,
                                                    _name: N1,
                                                    options?: GetUpperAPIOptions<A, N1, O>,) {
-        const parent = _getUpperContextValue(options?.contextValue || contextValue, options?.onBoundaryForward);
+        const parent = _getUpperContextValue(options?.contextValue || contextValue, options?.shouldForwardYield);
         if (!parent) return;
         return _getApiDesc(_name, parent.bridge);
     }
@@ -350,7 +345,7 @@ function genOutput<A extends APIParams,P = any, const O extends BridgeAPIOptions
                 _name: N1,
                 options?: GetUpperAPIOptions<A, N1, O>
             ) => {
-                const parent = _getUpperContextValue(options?.contextValue || contextValue, options?.onBoundaryForward);
+                const parent = _getUpperContextValue(options?.contextValue || contextValue, options?.shouldForwardYield);
                 if (!parent) return;
                 return parent.bridge;
             }, []);
@@ -379,11 +374,11 @@ function genOutput<A extends APIParams,P = any, const O extends BridgeAPIOptions
             return _apiNList;
         },
         useUpperBoundaryPayload: (hookOptions?: UpperOptions<A, O>, deps?: DependencyList) => {
-            const {onBoundaryForward} = hookOptions || {};
+            const {shouldForwardYield} = hookOptions || {};
             const contextValue = useFinalContextValue(hookOptions);
 
             return useMemo(() => {
-                const parent = _getUpperContextValue(contextValue, onBoundaryForward);
+                const parent = _getUpperContextValue(contextValue, shouldForwardYield);
                 return parent?.payload;
             }, deps || [])
         }
