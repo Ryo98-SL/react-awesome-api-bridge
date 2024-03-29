@@ -1,8 +1,20 @@
-import {PropsWithChildren, ReactNode, Ref, RefObject, useEffect, useLayoutEffect, useRef, useState} from "react";
+import {
+    PropsWithChildren,
+    ReactNode,
+    Ref,
+    RefObject,
+    useCallback,
+    useEffect,
+    useLayoutEffect,
+    useRef,
+    useState
+} from "react";
 import createBridge from "../bridge";
 
 
 export default function ExampleTree() {
+    const rootNodeAPI = TreeBridge.useAPI('node');
+
     return <div style={{width: 500, background: 'white', height: 'fit-content', padding: '20px', outline: '1px solid'}}>
         <TreeNode name={'Root'}>
             <TreeNode name={'Sub1'}>
@@ -11,6 +23,13 @@ export default function ExampleTree() {
                     <TreeNode name={'s1-1-2'}/>
                     <CollapseRootNode/>
                 </TreeNode>
+
+                <TreeNode name={'s1-2'}>
+                    <TreeNode name={'s1-2-1'}></TreeNode>
+                    <TreeNode name={'s1-2-2'}/>
+                    <ToggleSub2Node/>
+                    <TreeNode name={'s1-3-2'}/>
+                </TreeNode>
             </TreeNode>
             <TreeNode name={'Sub2'}>
                 <TreeNode name={'s2-1'}/>
@@ -18,11 +37,15 @@ export default function ExampleTree() {
                 <TreeNode name={'s2-3'}/>
             </TreeNode>
         </TreeNode>
+
+        <button onClick={() => {
+            console.log(rootNodeAPI[0]?.current?.getStatus());
+        }}>show root status</button>
     </div>
 }
 
 
-
+type UpdateHeight = (action: (number | "full" | ((lastHeight: number) => number))) => void;
 
 function TreeNode(props: PropsWithChildren<{name: ReactNode}>){
     const [collapsed, setCollapsed] = useState(false);
@@ -31,12 +54,36 @@ function TreeNode(props: PropsWithChildren<{name: ReactNode}>){
     const contentNodeRef = useRef<HTMLDivElement>(null);
     const checkboxRef = useRef<HTMLInputElement>(null);
 
+    const parentNodeAPI = TreeBridge.useAPI('parent');
+
+
     useLayoutEffect(() => {
+        const height = collapsed ? 0 : 'full';
+        updateHeight(height)
+    }, [props.children, collapsed]);
+
+    const lastTargetHeight = useRef(0);
+
+    const updateHeight = useCallback<UpdateHeight>((action) => {
         const contentNode = contentNodeRef.current;
         if(!contentNode) return;
-        const height = collapsed ? 0 : (contentNode.scrollHeight || 0);
-        contentNode.style.setProperty('height', height + 'px');
-    }, [props.children, collapsed]);
+
+        let finalHeight: number;
+        const sh = contentNode.scrollHeight;
+        const lh = lastTargetHeight.current;
+
+        if(typeof action === 'function') {
+            finalHeight = action(lh);
+        } else {
+            finalHeight = action === 'full' ? sh : action;
+        }
+
+        const change = finalHeight - lh;
+        lastTargetHeight.current = finalHeight;
+
+        contentNode.style.setProperty('height', `${finalHeight}px`);
+        parentNodeAPI.current?.updateHeight((_lh) => _lh + change);
+    }, []);
 
     const contextValue = TreeBridge.useChildContextValue();
     const leavesRef = useRef<RefObject<Tree>[]>([]);
@@ -48,7 +95,8 @@ function TreeNode(props: PropsWithChildren<{name: ReactNode}>){
         contextValue
     });
 
-    const parentNodeAPI = TreeBridge.useAPI('parent');
+
+
 
     const api: Tree = {
         name: props.name,
@@ -67,15 +115,17 @@ function TreeNode(props: PropsWithChildren<{name: ReactNode}>){
                 return sum + (status.checked ? 1 : 0)
             }, 0);
 
-
             const allChecked = childNodes.length === checkedSum;
             setIndeterminate((!allChecked && checkedSum > 0) || hasIndeterminate);
             setChecked(allChecked);
-        }
+        },
+        updateHeight
     };
 
-    TreeBridge.useRegister('parent', () => api, [collapsed, checked, indeterminate, props.name], {contextValue});
-    TreeBridge.useRegister('node', () => api, [collapsed, checked, indeterminate, props.name]);
+    const deps = [collapsed, checked, indeterminate, updateHeight, props.name];
+
+    TreeBridge.useRegister('parent', () => api, deps, {contextValue});
+    TreeBridge.useRegister('node', () => api, deps);
 
     useEffect(() => {
         const checkboxNode = checkboxRef.current;
@@ -129,6 +179,20 @@ function CollapseRootNode() {
     return <button onClick={collapseRoot}>collapse root</button>
 }
 
+function ToggleSub2Node() {
+    const rootAPI = TreeBridge.useUpperAPI('parent', {
+        shouldForwardYield: (contextValue) => {
+            return contextValue && contextValue.payload === 'Root';
+        }
+    });
+
+    function toggle() {
+        rootAPI?.current?.getLeaves().find(leave => leave.current?.name === 'Sub2')?.current?.toggleCollapse()
+    }
+
+    return <button onClick={toggle}>toggle Sub2</button>
+}
+
 
 const TreeBridge = createBridge<
     { parent: Tree, node: Tree }
@@ -141,4 +205,5 @@ interface Tree {
         getStatus: () => {checked: boolean, collapsed: boolean, indeterminate: boolean};
         getLeaves: () => RefObject<Tree>[];
         updateCheckStatus():void;
+        updateHeight: UpdateHeight;
 }

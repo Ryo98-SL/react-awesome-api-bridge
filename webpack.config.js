@@ -29,13 +29,6 @@ module.exports = (env) => {
         resolve: {
             extensions: ['.ts', '.tsx', '.js', '.json']
         },
-        externals: {
-          'react': {
-              commonjs: 'react',
-              amd: 'react',
-              root: 'React'
-          }
-        },
         module: {
             rules: [{
                 test: /\.(ts|js)x?$/,
@@ -79,6 +72,11 @@ const proConfig = {
     mode: 'production',
     entry: path.join(APP_PATH, './bridge.tsx'),
     externals: {
-        react: 'umd react',
-    }
+        'react': {
+            commonjs: 'react',
+            commonjs2: 'react',
+            amd: 'react',
+            root: 'React'
+        }
+    },
 }
