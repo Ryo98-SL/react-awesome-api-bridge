@@ -111,7 +111,7 @@ function genOutput<A extends APIParams,P = any, const O extends BridgeAPIOptions
     });
     Boundary.displayName = 'Boundary';
 
-    const useFinalContextValue = <N1 extends keyof A>(options?: GetUpperAPIOptions<A, N1, O>) => {
+    const useFinalContextValue = <N1 extends keyof A>(options?: GetUpperAPIOptions<A, N1, O, P>) => {
         const {contextValue: _outerContextValue} = options || {};
         const ownContextValue = useContext(BridgeContext);
         return _outerContextValue || ownContextValue;
@@ -254,12 +254,12 @@ function genOutput<A extends APIParams,P = any, const O extends BridgeAPIOptions
 
             return apiNList;
         },
-        useBoundaryPayload: (hookOptions?: BaseOptions<A, O>) => {
+        useBoundaryPayload: (hookOptions?: BaseOptions<A, O, P>) => {
             const contextValue = useFinalContextValue(hookOptions);
             return contextValue.payload;
         },
         useBoundaryRef: () => {
-            return useRef<BoundaryAPI<A, O>>(null);
+            return useRef<BoundaryAPI<A, O, P>>(null);
         },
         useChildContextValue: (): BoundaryContextValue<A, P, O> => {
             const parent = useContext(BridgeContext);
@@ -330,7 +330,7 @@ function genOutput<A extends APIParams,P = any, const O extends BridgeAPIOptions
                 return _getApiDesc(_name, options?.contextValue?.bridge || contextValue.bridge).apiNList;
             }, [contextValue.bridge]);
 
-            const getBoundaryPayload = useCallback(<N1 extends keyof A, >(_name: N1, options?: BaseOptions<A, O, P>) => {
+            const getBoundaryPayload = useCallback((options?: BaseOptions<A, O, P>) => {
                 return (options?.contextValue || contextValue).payload;
             }, [contextValue.payload]);
 
@@ -373,7 +373,7 @@ function genOutput<A extends APIParams,P = any, const O extends BridgeAPIOptions
 
             return _apiNList;
         },
-        useUpperBoundaryPayload: (hookOptions?: UpperOptions<A, O>, deps?: DependencyList) => {
+        useUpperBoundaryPayload: (hookOptions?: UpperOptions<A, O, P>, deps?: DependencyList) => {
             const {shouldForwardYield} = hookOptions || {};
             const contextValue = useFinalContextValue(hookOptions);
 

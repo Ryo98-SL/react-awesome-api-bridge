@@ -29,6 +29,13 @@ module.exports = (env) => {
         resolve: {
             extensions: ['.ts', '.tsx', '.js', '.json']
         },
+        externals: {
+          'react': {
+              commonjs: 'react',
+              amd: 'react',
+              root: 'React'
+          }
+        },
         module: {
             rules: [{
                 test: /\.(ts|js)x?$/,
