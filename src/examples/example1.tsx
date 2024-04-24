@@ -1,4 +1,5 @@
-import createBridge from "../bridge";
+import createBridge from "../../dist/bridge";
+// import createBridge from "../bridge";
 import {PropsWithChildren, useCallback, useEffect, useRef, useState} from "react";
 
 export default function Example1() {
@@ -46,6 +47,15 @@ export default function Example1() {
 
             {/*CComponent is inside the DeepC, but it's api still available!*/}
             <DeepC stacks={3}/>
+        </div>
+
+        <div>
+            <button onClick={() => {
+                const AApi = ExaBridge.getAPI('A');
+                AApi.current?.bark()
+            }}>
+                callA without hook
+            </button>
         </div>
     </>
 }

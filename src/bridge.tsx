@@ -44,10 +44,12 @@ const createBridge = <
 export default createBridge;
 
 function genOutput<A extends APIParams,P = any, const O extends BridgeAPIOptions<A> = BridgeAPIOptions<A>>(bridgeOptions?: O) {
-    const BridgeContext = createContext<BoundaryContextValue<A,P,O>>({
+    const defaultContextValue: BoundaryContextValue<A,P,O> = {
         bridge: {},
         parent: undefined,
-    });
+    };
+
+    const BridgeContext = createContext(defaultContextValue);
 
     const cacheInitCbMap = new WeakMap<any, {
         onInit: Function;
@@ -246,6 +248,9 @@ function genOutput<A extends APIParams,P = any, const O extends BridgeAPIOptions
         },
         initCbMap: cacheInitCbMap,
         initializedCallbacksMap,
+        getAPI<N extends keyof A, >(name: N, contextValue: BoundaryContextValue<A, P, O> = defaultContextValue) {
+            return _getApiDesc(name, contextValue.bridge).apiNList;
+        },
         useAPI: <N extends keyof A, >(name: N, hookOptions?: GetAPIOptions<A, N, O>) => {
             const {onInit} = hookOptions || {};
             const contextValue = useFinalContextValue(hookOptions);
