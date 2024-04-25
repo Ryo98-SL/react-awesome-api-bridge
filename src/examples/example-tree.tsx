@@ -85,7 +85,7 @@ function TreeNode(props: PropsWithChildren<{name: ReactNode}>){
         parentNodeAPI.current?.updateHeight((_lh) => _lh + change);
     }, []);
 
-    const contextValue = TreeBridge.useChildContextValue();
+    const contextValue = TreeBridge.useContextValue();
     const leavesRef = useRef<RefObject<Tree>[]>([]);
 
     const leafAPIList = TreeBridge.useAPI('node', {
@@ -141,7 +141,7 @@ function TreeNode(props: PropsWithChildren<{name: ReactNode}>){
     }, [checked, indeterminate]);
 
 
-    return <TreeBridge.Boundary payload={props.name} contextValue={contextValue}>
+    return <TreeBridge.Boundary  contextValue={contextValue}>
         <div style={{display: 'flow-root'}}>
             <div style={{border: '1px solid #eee', outline: 'none', lineHeight: 2, display: 'block'}}>
                 <label>
@@ -195,7 +195,8 @@ function ToggleSub2Node() {
 
 
 const TreeBridge = createBridge<
-    { parent: Tree, node: Tree }
+    { parent: Tree, node: Tree },
+    ReactNode
 >()({node: {isMulti: true}});
 
 interface Tree {

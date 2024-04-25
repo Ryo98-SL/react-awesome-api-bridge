@@ -141,8 +141,9 @@ const EMBridge = createBridge<
             id: string;
             introduce(): void;
         }
-    }
->()({
+    },
+    number
+>(1)({
     B: {
         isMulti: true
     }

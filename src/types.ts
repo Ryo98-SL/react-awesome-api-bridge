@@ -22,14 +22,15 @@ export type Bridge<A extends APIParams, O extends BridgeAPIOptions<A> = BridgeAP
 export type BoundaryContextValue<A extends APIParams, P = any, O extends BridgeAPIOptions<A> = BridgeAPIOptions<A>> = {
     bridge: Bridge<A, O>;
     parent?: BoundaryContextValue<A,P, O>;
-    payload?: P;
+    payload: P;
 };
 export type BoundaryProps<A extends APIParams, P = any, O extends BridgeAPIOptions<A> = BridgeAPIOptions<A>> = {
-    payload?: P;
     contextValue?: BoundaryContextValue<A,P, O>;
-}
-export type BoundaryAPI<A extends APIParams, O extends BridgeAPIOptions<A> = BridgeAPIOptions<A>, P = any> = {
+} & (undefined extends P ? {
     payload?: P;
+} : {payload: P})
+export type BoundaryAPI<A extends APIParams, O extends BridgeAPIOptions<A> = BridgeAPIOptions<A>, P = any> = {
+    payload: P;
     getAPI: <N extends keyof A>(name: N) => ResolveAPI<A,O, N>,
     parent: BoundaryContextValue<A, P, O> | undefined,
 }

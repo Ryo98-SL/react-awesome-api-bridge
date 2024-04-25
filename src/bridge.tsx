@@ -29,13 +29,16 @@ import {
     UpperOptions
 } from "./types";
 
+type PayloadParameter<T> =   undefined extends T ? [payload?: T] : [payload: T];
 const createBridge = <
     A extends APIParams,
-    P = any
->() => {
-    const output = genOutput<A, P>();
+    P extends any  = any
+>(...args: PayloadParameter<P>) => {
+    const payload = args[0] as P;
+
+    const output = genOutput<A, P>(payload);
     const currying = <O extends BridgeAPIOptions<A>>(options?: O) => {
-        return genOutput<A, P, O>(options);
+        return genOutput<A, P, O>(payload,options);
     };
 
     return Object.assign(currying, output);
@@ -43,10 +46,11 @@ const createBridge = <
 
 export default createBridge;
 
-function genOutput<A extends APIParams,P = any, const O extends BridgeAPIOptions<A> = BridgeAPIOptions<A>>(bridgeOptions?: O) {
+function genOutput<A extends APIParams,P = any, const O extends BridgeAPIOptions<A> = BridgeAPIOptions<A>>(payload: P, bridgeOptions?: O) {
     const defaultContextValue: BoundaryContextValue<A,P,O> = {
         bridge: {},
         parent: undefined,
+        payload
     };
 
     const BridgeContext = createContext(defaultContextValue);
@@ -87,15 +91,16 @@ function genOutput<A extends APIParams,P = any, const O extends BridgeAPIOptions
         const paramParent = props.contextValue?.parent;
         const upperParent = useContext(BridgeContext);
         const parent = paramParent || upperParent;
+        const _payload = props.payload as P;
         useImperativeHandle(ref, () => {
             return {
                 getAPI: (name) => {
                     return _getApiDesc(name, bridge).apiNList;
                 },
                 parent,
-                payload: props.payload
+                payload: _payload
             }
-        },[props.payload]);
+        },[_payload]);
 
         const contextValue = useMemo(() => {
             const final: BoundaryContextValue<A,P,O> = {
@@ -103,11 +108,11 @@ function genOutput<A extends APIParams,P = any, const O extends BridgeAPIOptions
                     bridge,
                     parent,
                 }),
-                payload: props.payload
+                payload: _payload
             };
 
             return final
-        }, [props.contextValue, props.payload]);
+        }, [props.contextValue, _payload]);
 
         return <BridgeContext.Provider value={contextValue}>{props.children}</BridgeContext.Provider>
     });
@@ -233,7 +238,7 @@ function genOutput<A extends APIParams,P = any, const O extends BridgeAPIOptions
 
     function _getUpperApiDesc< N1 extends keyof A>(contextValue: BoundaryContextValue<A, P, O>,
                                                    _name: N1,
-                                                   options?: GetUpperAPIOptions<A, N1, O>,) {
+                                                   options?: GetUpperAPIOptions<A, N1, O, P>,) {
         const parent = _getUpperContextValue(options?.contextValue || contextValue, options?.shouldForwardYield);
         if (!parent) return;
         return _getApiDesc(_name, parent.bridge);
@@ -241,8 +246,10 @@ function genOutput<A extends APIParams,P = any, const O extends BridgeAPIOptions
 
     return {
         Boundary,
-        createContextValue(): BoundaryContextValue<A, P, O> {
+        createContextValue(...args: PayloadParameter<P>): BoundaryContextValue<A, P, O> {
+            const payload = args[0] as P;
             return {
+                payload,
                 bridge: {},
             };
         },
@@ -266,17 +273,16 @@ function genOutput<A extends APIParams,P = any, const O extends BridgeAPIOptions
         useBoundaryRef: () => {
             return useRef<BoundaryAPI<A, O, P>>(null);
         },
-        useChildContextValue: (): BoundaryContextValue<A, P, O> => {
+        useContextValue: (...args: PayloadParameter<P>): BoundaryContextValue<A, P, O> => {
+            const payload = args[0] as P;
             const parent = useContext(BridgeContext);
             return useMemo(() => {
                 return {
                     bridge: {},
-                    parent
+                    parent,
+                    payload
                 }
             }, []);
-        },
-        useContextValue() {
-            return useContext(BridgeContext);
         },
         useRegister: <N extends keyof A, T extends A[N]>(name: N, init: () => T, deps?: DependencyList, hookOptions?: BaseOptions<A, O>) => {
             const isMulti = getIsMulti(name);
@@ -341,18 +347,18 @@ function genOutput<A extends APIParams,P = any, const O extends BridgeAPIOptions
 
             const getUpperAPI = useCallback(<N1 extends keyof A, >(
                 _name: N1,
-                options?: GetUpperAPIOptions<A, N1, O>
+                options?: GetUpperAPIOptions<A, N1, O, P>
             ) => {
                 return _getUpperApiDesc(contextValue, _name, options)?.apiNList;
             }, []);
 
             const getUpperBoundaryPayload = useCallback(<N1 extends keyof A, >(
                 _name: N1,
-                options?: GetUpperAPIOptions<A, N1, O>
+                options?: GetUpperAPIOptions<A, N1, O, P>
             ) => {
                 const parent = _getUpperContextValue(options?.contextValue || contextValue, options?.shouldForwardYield);
                 if (!parent) return;
-                return parent.bridge;
+                return parent.payload;
             }, []);
 
             return {
@@ -362,7 +368,7 @@ function genOutput<A extends APIParams,P = any, const O extends BridgeAPIOptions
                 getUpperBoundaryPayload
             }
         },
-        useUpperAPI: <N extends keyof A>(name: N, hookOptions?: GetUpperAPIOptions<A, N, O>, deps?: DependencyList) => {
+        useUpperAPI: <N extends keyof A>(name: N, hookOptions?: GetUpperAPIOptions<A, N, O, P>, deps?: DependencyList) => {
             const {
                 onInit
             } = hookOptions || {};
