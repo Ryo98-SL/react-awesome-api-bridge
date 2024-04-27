@@ -1,19 +1,18 @@
-const path = require('path');
-const ForkTsCheckerWebpackPlugin = require('fork-ts-checker-webpack-plugin');
-const HtmlWebpackPlugin = require('html-webpack-plugin');
-const APP_PATH = path.resolve(__dirname, 'src');
-const {merge} = require('webpack-merge');
+import path from 'path';
+import ForkTsCheckerWebpackPlugin  from 'fork-ts-checker-webpack-plugin'
+import HtmlWebpackPlugin from 'html-webpack-plugin';
 
-module.exports = (env) => {
+const APP_PATH = path.resolve(__dirname, 'src');
+import {merge} from 'webpack-merge';
+import webpack from "webpack";
+import "webpack-dev-server"
+
+const factory = (env: Record<string, string>) => {
     const isDev = env.mode === 'development';
 
     console.log("=>(webpack.config.js:9) isDev", isDev);
 
-    /**
-     *
-     * @type {import('webpack').Configuartion}
-     */
-    const commonConfig = {
+    const commonConfig: webpack.Configuration = {
         output: {
             globalObject: 'this',
             clean: true,
@@ -47,12 +46,9 @@ module.exports = (env) => {
 
     return merge(commonConfig, isDev ? devConfig : proConfig);
 };
+export default factory;
 
-/**
- *
- * @type {import('webpack').Configuartion}
- */
-const devConfig = {
+const devConfig:webpack.Configuration = {
     mode: 'development',
     entry: APP_PATH,
     plugins: [
@@ -64,11 +60,7 @@ const devConfig = {
     }
 };
 
-/**
- *
- * @type {import('webpack').Configuartion}
- */
-const proConfig = {
+const proConfig:webpack.Configuration = {
     mode: 'production',
     entry: path.join(APP_PATH, './bridge.tsx'),
     externals: {
