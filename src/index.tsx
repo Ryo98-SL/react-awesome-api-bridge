@@ -9,11 +9,12 @@ root.render(
     <>
         <StrictMode>
             <div style={{height: '100vh', width: '100vw', flexFlow: 'column', gap: 20, display: 'flex', alignItems: 'center', justifyContent: 'center'}}>
-                <Example1/>
+                {/*<Example1/>*/}
                 {/*<ExampleMultiple/>*/}
-                {/*<ExampleTree/>*/}
+                <ExampleTree/>
 
             </div>
+
         </StrictMode>
     </>
 
@@ -24,6 +25,7 @@ function NoMemo() {
     const [value, setValue] = useState('');
     const [num, setNum] = useState(0);
     const [isPending, startTransition] = useTransition();
+
     return <div>
         <input value={value} onChange={({target}) => {
             setValue(target.value);

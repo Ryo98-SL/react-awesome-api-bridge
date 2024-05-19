@@ -58,7 +58,7 @@ export interface GetAPIOptions<A extends APIParams, N extends keyof A, O extends
 export interface UpperOptions<A extends APIParams, O extends BridgeAPIOptions<A> = BridgeAPIOptions<A>, P = any>
 extends BaseOptions<A, O, P>
 {
-    shouldForwardYield?: (contextValue: BoundaryContextValue<A ,P ,O>) => any
+    shouldForwardYield?: (contextValue: Pick<BoundaryContextValue<A ,P ,O>, 'payload' | 'parent'>) => any
 }
 
 export interface GetUpperAPIOptions<A extends APIParams, N extends keyof A, O extends BridgeAPIOptions<A>, P = any>

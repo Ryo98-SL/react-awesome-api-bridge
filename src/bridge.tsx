@@ -64,9 +64,9 @@ function genOutput<A extends APIParams,P = any, const O extends BridgeAPIOptions
         return bridgeOptions?.[name]?.isMulti
     }
 
-    const _getApiDesc = <N extends keyof A>(name: N, source: Bridge<A, O>, silent = false) => {
+    const _getApiDesc = <N extends keyof A>(name: N, source: Bridge<A, O>) => {
         let isInitial = false;
-        if(!source[name] && !silent) {
+        if(!source[name]) {
             isInitial = true;
             const isMulti = getIsMulti(name);
             const apiNList = ( isMulti ? [] as RefObject<A[N]>[]
@@ -91,7 +91,7 @@ function genOutput<A extends APIParams,P = any, const O extends BridgeAPIOptions
         const paramParent = props.contextValue?.parent;
         const upperParent = useContext(BridgeContext);
         const parent = paramParent || upperParent;
-        const _payload = props.payload as P;
+        const _payload =  props.contextValue?.payload ??  props.payload  as P;
         useImperativeHandle(ref, () => {
             return {
                 getAPI: (name) => {
@@ -230,7 +230,10 @@ function genOutput<A extends APIParams,P = any, const O extends BridgeAPIOptions
             parent = parent.parent;
             if(!shouldForwardYield || !parent) break;
 
-            if (!!shouldForwardYield(parent)) break;
+            if (!!shouldForwardYield({
+                payload: parent.payload,
+                parent: parent.parent
+            })) break;
         }
         return parent;
     }
@@ -246,13 +249,6 @@ function genOutput<A extends APIParams,P = any, const O extends BridgeAPIOptions
 
     return {
         Boundary,
-        createContextValue(...args: PayloadParameter<P>): BoundaryContextValue<A, P, O> {
-            const payload = args[0] as P;
-            return {
-                payload,
-                bridge: {},
-            };
-        },
         initCbMap: cacheInitCbMap,
         initializedCallbacksMap,
         getAPI<N extends keyof A, >(name: N, contextValue: BoundaryContextValue<A, P, O> = defaultContextValue) {
@@ -368,7 +364,7 @@ function genOutput<A extends APIParams,P = any, const O extends BridgeAPIOptions
                 getUpperBoundaryPayload
             }
         },
-        useUpperAPI: <N extends keyof A>(name: N, hookOptions?: GetUpperAPIOptions<A, N, O, P>, deps?: DependencyList) => {
+        useUpperAPI: <N extends keyof A>(name: N, hookOptions?: GetUpperAPIOptions<A, N, O, P>) => {
             const {
                 onInit
             } = hookOptions || {};
@@ -377,7 +373,7 @@ function genOutput<A extends APIParams,P = any, const O extends BridgeAPIOptions
 
             const _apiNList = useMemo(() => {
                 return _getUpperApiDesc(contextValue, name, hookOptions)?.apiNList;
-            }, deps || []);
+            },  []);
             if (!_apiNList) return;
 
             useInitEffect(onInit, name, _apiNList, contextValue);

@@ -47,7 +47,7 @@ export default function ExampleTree() {
 
 type UpdateHeight = (action: (number | "full" | ((lastHeight: number) => number))) => void;
 
-function TreeNode(props: PropsWithChildren<{name: ReactNode}>){
+function  TreeNode(props: PropsWithChildren<{name: ReactNode}>){
     const [collapsed, setCollapsed] = useState(false);
     const [checked, setChecked] = useState(false);
     const [indeterminate, setIndeterminate] = useState(false);
@@ -141,7 +141,7 @@ function TreeNode(props: PropsWithChildren<{name: ReactNode}>){
     }, [checked, indeterminate]);
 
 
-    return <TreeBridge.Boundary  contextValue={contextValue}>
+    return <TreeBridge.Boundary payload={props.name}  contextValue={contextValue}>
         <div style={{display: 'flow-root'}}>
             <div style={{border: '1px solid #eee', outline: 'none', lineHeight: 2, display: 'block'}}>
                 <label>
@@ -155,7 +155,6 @@ function TreeNode(props: PropsWithChildren<{name: ReactNode}>){
                     {collapsed ? "expand" : "collapse"}
                 </button>}
             </div>
-
             <div ref={contentNodeRef} style={{marginLeft: 10, overflow: 'hidden',transition: '.3s height'}}>
                 {
                     props.children
