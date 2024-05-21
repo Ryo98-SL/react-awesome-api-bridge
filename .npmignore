@@ -1,6 +1,6 @@
 node_modules/
 webpack.config.ts
-.ideal/
+.idea/
 tsconfig-for-webpack.json
 babel.config.js
 src/
