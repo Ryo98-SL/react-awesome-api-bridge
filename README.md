@@ -522,7 +522,7 @@ const Bridge = createBridge<
 
 function A (props) {
     // then the register pattern will be this:
-    useRegister('msg', () => {
+  Bridge.useRegister('msg', () => {
         return () => props.message
     }, [props.message])
     
