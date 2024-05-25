@@ -43,9 +43,9 @@ export type BoundaryAPI<A extends APIParams, O extends BridgeAPIOptions<A> = Bri
     getAPI: <N extends keyof A>(name: N) => ResolveAPI<A,O, N>,
     parent: BoundaryContextValue<A, P, O> | undefined,
 }
-export type OnInit<A extends APIParams, N extends keyof A> =  (api: RefObject<A[N]>) => void;
+export type OnInit<A extends APIParams, N extends keyof A> =  (api: RefObject<A[N]>) => any;
 
-export type OnMultiInit<A extends APIParams, N extends keyof A> = (api: RefObject<A[N]> | undefined, total: RefObject<A[N]>[]) => void;
+export type OnMultiInit<A extends APIParams, N extends keyof A> = (api: RefObject<A[N]> | undefined, total: RefObject<A[N]>[]) => any;
 
 export type ResolveInit<A extends APIParams, O extends BridgeAPIOptions<A>,  N extends keyof A> = ConditionByIsMulti<O, N, OnMultiInit<A, N>, OnInit<A, N>>;
 
@@ -89,7 +89,3 @@ export interface GetUpperAPIOptions<A extends APIParams, N extends keyof A, O ex
 
 
 type ResetReturn<F, NR> = F extends (...args:infer P) => any ? (...args: P) => NR : F;
-
-export interface HookId {
-
-}

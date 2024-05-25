@@ -75,6 +75,10 @@ function AComponent(){
             // When there is subsequent api registered for 'B', this function will be called, with the first argument as
             // the subsequently registered api, and the total will be all registered api including the  subsequently registered api
             console.log(`(A)_${prefix}`, api, total);
+
+            return () => {
+                console.log(`(A) B api onInit effect cleared`)
+            }
         }
     });
 

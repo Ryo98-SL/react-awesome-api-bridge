@@ -24,7 +24,6 @@ import {
     ConditionByIsMulti,
     GetAPIOptions,
     GetUpperAPIOptions,
-    HookId,
     OnInit,
     OnMultiInit,
     ResolveAPI,
@@ -61,9 +60,9 @@ function genOutput<A extends APIParams,P = any, const O extends BridgeAPIOptions
     const BridgeContext = createContext(defaultContextValue);
 
     // Is used to cache the onInit callback of useAPI and useUpperAPI.
-    const cacheInitCbMap = new WeakMap<any, {
+    const cacheInitCbMap = new WeakMap<ApiNList<A, O, keyof A>, {
         onInit: Function;
-        hookId: any;
+        hookId: HookId;
     }[]>();
 
     function getIsMulti<N extends keyof A>(name: N) {
@@ -130,12 +129,11 @@ function genOutput<A extends APIParams,P = any, const O extends BridgeAPIOptions
         return _outerContextValue || ownContextValue;
     }
 
-    const initializedCallbacksMap = new Map<RefObject<A[keyof A]>, HookId[]>();
+    const initializedOnInitMap = new Map<RefObject<A[keyof A]>, HookId[]>();
 
     function mountHookInitEffect<N extends keyof A, ANL extends ResolveAPI<A, O, N>>
     (name: N, onInit: ResolveInit<A, O, N> | undefined, apiNList: ANL, hookId: any) {
         if(!onInit) return;
-        let clearEffectCallback: any;
         const isMulti = getIsMulti(name) ?? false;
         const involvedApiList: RefObject<A[N]>[] = [];
 
@@ -147,7 +145,7 @@ function genOutput<A extends APIParams,P = any, const O extends BridgeAPIOptions
             const _assertedOnInit = onInit as OnInit<A, N>;
 
             deferFn = () => {
-                clearEffectCallback = _assertedOnInit(_assertedApi);
+                return _assertedOnInit(_assertedApi)
             }
 
             involvedApiList.push(_assertedApi)
@@ -158,7 +156,7 @@ function genOutput<A extends APIParams,P = any, const O extends BridgeAPIOptions
             const _assertedOnInit = onInit as OnMultiInit<A, N>;
 
             deferFn = () => {
-                clearEffectCallback = _assertedOnInit(undefined, _assertedApiList);
+                return _assertedOnInit(undefined, _assertedApiList);
             }
 
             involvedApiList.push(..._assertedApiList);
@@ -167,16 +165,20 @@ function genOutput<A extends APIParams,P = any, const O extends BridgeAPIOptions
         }
 
 
-        if(involvedApiList.some((apiRef) => !initializedCallbacksMap.get(apiRef)?.includes(hookId) )) {
-            deferFn?.();
-            involvedApiList.forEach((apiRef) => {
-                // marked as  initialized, prevent duplicate invocation
-                appendToMappedValue(initializedCallbacksMap, apiRef , hookId);
-            });
+        let clearFns: any[] = [];
+
+        if(involvedApiList.some((apiRef) => !initializedOnInitMap.get(apiRef)?.includes(hookId) )) {
+            clearFns.push(
+                deferFn?.(),
+                ...involvedApiList.map((apiRef) => {
+                    // marked as  initialized, prevent duplicate invocation
+                    return appendToMappedValue(initializedOnInitMap, apiRef , hookId);
+                })
+            )
         }
 
         return () => {
-            tryInvoke(clearEffectCallback);
+            clearFns.forEach(tryInvoke);
         }
     }
 
@@ -193,13 +195,14 @@ function genOutput<A extends APIParams,P = any, const O extends BridgeAPIOptions
 
         useEffect(() => {
             if (!onInit) return;
-            return mountHookInitEffect(name, onInit, apiNList, hookId);
-        }, [name, onInit, contextValue]);
-
-        useEffect(() => {
-            if (!onInit) return;
             // cache onInit associated with hookId, then it will be invoked subsequently.
-            return appendToMappedValue(cacheInitCbMap, apiNList, {onInit, hookId})
+            const removeCache = appendToMappedValue(cacheInitCbMap, apiNList, {onInit, hookId});
+            const clearInitEffect = mountHookInitEffect(name, onInit, apiNList, hookId);
+
+            return () => {
+                removeCache();
+                clearInitEffect?.()
+            }
         }, []);
 
         // update onInit callback
@@ -216,7 +219,7 @@ function genOutput<A extends APIParams,P = any, const O extends BridgeAPIOptions
         // remove callback when unmount
         useEffect(() => {
             return () => {
-                initializedCallbacksMap.forEach((arr, key) => {
+                initializedOnInitMap.forEach((arr, key) => {
                     removeArrayElement(arr, hookId);
                 });
             }
@@ -263,7 +266,7 @@ function genOutput<A extends APIParams,P = any, const O extends BridgeAPIOptions
     return {
         Boundary,
         initCbMap: cacheInitCbMap,
-        initializedCallbacksMap,
+        initializedCallbacksMap: initializedOnInitMap,
         getAPI<N extends keyof A, >(name: N, contextValue: BoundaryContextValue<A, P, O> = defaultContextValue) {
             return _getApiDesc(name, contextValue.bridge).apiNList;
         },
@@ -299,45 +302,33 @@ function genOutput<A extends APIParams,P = any, const O extends BridgeAPIOptions
             const {apiNList} = useMemo(() => _getApiDesc(name, contextValue!.bridge),[name, contextValue]);
 
             const apiRef = useUniqueElementRef(apiNList);
-            const hasInitialized = useRef(false);
 
             //init effect ---- start
             useImperativeHandle(apiRef, () => {
                 return init();
             }, deps);
             useEffect(() => {
-                if (!hasInitialized.current) {
-                    const callbacks = cacheInitCbMap.get(apiNList);
-                    const deferFnList = callbacks?.filter((initInfo) => {
-                        return !initializedCallbacksMap.get(apiRef)?.includes(initInfo.hookId)
-                    })
-                        .map( initInfo => {
-                            appendToMappedValue(initializedCallbacksMap, apiRef, initInfo.hookId);
-                            const onInit = initInfo.onInit;
-                            if (isMulti) {
-                                const _assertedOnInit = onInit as OnMultiInit<A, N>
-                                return () => _assertedOnInit(apiRef, apiNList as RefObject<A[N]>[]);
-                            } else {
-                                const _assertedOnInit = onInit as OnInit<A, N>;
+                let clearFns: any[] = [];
+                const callbacks = cacheInitCbMap.get(apiNList);
+                callbacks?.filter((initInfo) => {
+                    return !initializedOnInitMap.get(apiRef)?.includes(initInfo.hookId)
+                })
+                    .forEach(initInfo => {
+                        appendToMappedValue(initializedOnInitMap, apiRef, initInfo.hookId);
 
-                                return () => _assertedOnInit(apiRef);
-                            }
-                        });
+                        const onInit = initInfo.onInit;
+                        if (isMulti) {
+                            const _assertedOnInit = onInit as OnMultiInit<A, N>;
+                            clearFns.push(_assertedOnInit(apiRef, apiNList as RefObject<A[N]>[]))
+                        } else {
+                            const _assertedOnInit = onInit as OnInit<A, N>;
+                            clearFns.push(_assertedOnInit(apiRef))
+                        }
+                    });
 
-                    const clearEffectCallbacks = deferFnList?.map(fn => fn());
-
-                    hasInitialized.current = true;
-
-                    return () => {
-                        clearEffectCallbacks?.forEach(tryInvoke);
-                    }
-                }
-
-            }, deps);
-            useEffect(() => {
                 return () => {
-                    hasInitialized.current = false;
-                    initializedCallbacksMap.delete(apiRef);
+                    clearFns.forEach(tryInvoke);
+                    initializedOnInitMap.delete(apiRef);
                 }
             }, []);
             //init effect ---- end
@@ -440,9 +431,21 @@ function tryInvoke(mayFn: any): boolean{
     return false;
 }
 
-function useHookId(){
+const prefixes: string[] = [];
+let lastOccupiedNumber = 0;
+const genHookId = () => {
+    if(lastOccupiedNumber < Number.MAX_SAFE_INTEGER) {
+        lastOccupiedNumber++
+    } else {
+        prefixes.push(String.fromCharCode(prefixes.length))
+        lastOccupiedNumber = 0;
+    }
+    return [...prefixes,lastOccupiedNumber].join('');
+}
+
+function useHookId(): HookId{
     return useMemo(() => {
-        return  Symbol('hookId') //genUid();
+        return  process.env.WEBPACK_SERVE === 'true' ? genHookId() : Symbol('hookId')
     }, []);
 }
 
@@ -466,12 +469,5 @@ function appendToMappedValue<K extends object, E>(map: WeakMap<K, E[]>, key: K, 
 }
 
 
-const usedIdList: number[] = [];
-const genUid = () => {
-    const lastId = usedIdList.slice(-1)[0];
 
-    const newId = (lastId + 1) || 0;
-    usedIdList.push(newId);
-
-    return newId
-}
+type HookId = string | symbol;

@@ -107,7 +107,8 @@ function B() {
         'name',  
         // the second optional argument is an option object
         {
-            // this method is able to listen the first completion of regsiter, and the regsitered api ref object is passed as its first argument, then return a clear function if there has some effects need to be cleared in this function.
+            // this method is able to listen the first completion of regsiter, 
+            // and the regsitered api ref object is passed as its first argument,
         onInit(api) {
             console.log('name initialized',  api.current.getName());
             const handler =  () => {
@@ -115,8 +116,9 @@ function B() {
             };
             
             document.addEventListener('click',handler)
+            
+            //return a clear function if there has some effects need to be cleared in this function.
             return () => {
-                // clear effect
                 document.removeEventListener('click', )
             }
         }

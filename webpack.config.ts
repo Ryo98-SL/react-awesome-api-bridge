@@ -36,6 +36,7 @@ const factory = (env: Record<string, string>) => {
             }],
         },
         plugins: [
+            new webpack.EnvironmentPlugin(['WEBPACK_SERVE']),
             new ForkTsCheckerWebpackPlugin(),
         ],
         performance: {
@@ -57,7 +58,8 @@ const devConfig:webpack.Configuration = {
     devtool: 'eval-source-map',
     devServer: {
         open: true,
-    }
+    },
+
 };
 
 const proConfig:webpack.Configuration = {
