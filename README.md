@@ -3,6 +3,21 @@
 # react-api-bridge
 react-api-bridge is aim to build a registry for imperative api in **_react_** based app.
 Once api is registered, it will be available anywhere in Function Component.
+
+***
++ [Install](#install)
++ [Simple Usage](#simple-usage)
++ [useRegister and useAPI](#useregister-and-useapi)
++ [Boundary](#boundary)
++ [Associate with Boundaries or Hooks](#associate-with-boundaries-or-hooks)
++ [Boundary Payload](#boundary-payload)
++ [useUpperAPI and useUpperBoundaryPayload](#useupperapi-and-useupperboundarypayload)
++ [Hook Counterparts](#hook-counterparts)
++ [Multiple API](#multiple-api)
++ [Troubleshooting](#troubleshooting)
++ [Typescript](#typescript)
+***
+
 ## Install
 ```shell
   npm install @ryo-98/react-api-bridge
@@ -108,7 +123,7 @@ function B() {
     });
 
     const handleClick = () => {
-        // There determine whether current is not undefined, 
+        // There, determine whether current is not undefined, 
         // because the api is not guarant have been registered
         if(nameAPI.current) {
             console.log(nameAPI.current.getName())

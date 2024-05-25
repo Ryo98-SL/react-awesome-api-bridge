@@ -49,8 +49,7 @@ type UpdateHeight = (action: (number | "full" | ((lastHeight: number) => number)
 
 function  TreeNode(props: PropsWithChildren<{name: ReactNode}>){
     const [collapsed, setCollapsed] = useState(false);
-    const [checked, setChecked] = useState(false);
-    const [indeterminate, setIndeterminate] = useState(false);
+    const [checkState, setCheckState] = useState<boolean | 'indeterminate'>(false);
     const contentNodeRef = useRef<HTMLDivElement>(null);
     const checkboxRef = useRef<HTMLInputElement>(null);
 
@@ -101,67 +100,82 @@ function  TreeNode(props: PropsWithChildren<{name: ReactNode}>){
     const api: Tree = {
         name: props.name,
         toggleCollapse: (state) => setCollapsed( typeof state === 'undefined' ? !collapsed : state),
-        toggleChecked: (state) => setChecked( typeof state === 'undefined' ? !checked : state),
+        toggleChecked: (state) => {
+            setCheckState(typeof state === 'undefined' ? !checkState : state)
+        },
         getLeaves: () => leavesRef.current,
-        getStatus: () => ({checked, collapsed, indeterminate}),
+        getStatus: () => ({checkState: checkState, collapsed}),
         updateCheckStatus: () => {
-            const checkboxNode = checkboxRef.current;
             const childNodes = leavesRef.current;
             let hasIndeterminate = false;
-            const checkedSum = childNodes.reduce((sum, leaf) => {
-                const status = leaf.current?.getStatus();
-                if(!status) return sum;
-                if(status.indeterminate) hasIndeterminate = true;
-                return sum + (status.checked ? 1 : 0)
-            }, 0);
 
-            const allChecked = childNodes.length === checkedSum;
-            setIndeterminate((!allChecked && checkedSum > 0) || hasIndeterminate);
-            setChecked(allChecked);
+            let checkedSum = 0;
+            for (const leaf of childNodes) {
+                const status = leaf.current?.getStatus();
+                if(!status) continue;
+                if(status.checkState === 'indeterminate') {
+                    // if child is indeterminate, the parent must also indeterminate,
+                    // no need to end up full iteration.
+                    hasIndeterminate = true;
+                    break;
+                }
+                checkedSum += status.checkState === true ? 1 : 0;
+            }
+
+            setCheckState(
+                hasIndeterminate ?
+                    'indeterminate' :
+                    checkedSum === 0 ?
+                        false :
+                        checkedSum === childNodes.length ?
+                            true :
+                            "indeterminate"
+            );
         },
         updateHeight
     };
 
-    const deps = [collapsed, checked, indeterminate, updateHeight, props.name];
+    const deps = [collapsed, checkState, updateHeight, props.name];
 
     TreeBridge.useRegister('parent', () => api, deps, {contextValue});
     TreeBridge.useRegister('node', () => api, deps);
 
     useEffect(() => {
         const checkboxNode = checkboxRef.current;
-        checkboxNode!.indeterminate = indeterminate;
+        const isIndeterminate = checkState === 'indeterminate';
+        checkboxNode!.indeterminate = isIndeterminate;
 
-        if(!indeterminate) {
+        if(!isIndeterminate) {
             leafAPIList.forEach((leaf) => {
-                leaf.current?.toggleChecked(checked);
+                leaf.current?.toggleChecked(checkState);
             });
         }
 
         parentNodeAPI?.current?.updateCheckStatus();
-    }, [checked, indeterminate]);
+    }, [checkState]);
 
 
-    return <TreeBridge.Boundary payload={props.name}  contextValue={contextValue}>
+    return <TreeBridge.Boundary payload={props.name} contextValue={contextValue}>
         <div style={{display: 'flow-root'}}>
             <div style={{border: '1px solid #eee', outline: 'none', lineHeight: 2, display: 'block'}}>
                 <label>
-                    <input ref={checkboxRef} type={'checkbox'} checked={checked} onChange={(e) => {
-                        setChecked(e.target.checked);
-                        setIndeterminate(false);
-                    }}/>
+                    <input ref={checkboxRef} type={'checkbox'} checked={typeof checkState === 'boolean' ? checkState : false}
+                           onChange={(e) => {
+                               setCheckState(e.target.checked);
+                           }}/>
                     <span>{props.name}</span>
                 </label>
                 {props.children && <button onClick={setCollapsed.bind(null, (ps) => !ps)}>
                     {collapsed ? "expand" : "collapse"}
                 </button>}
             </div>
-            <div ref={contentNodeRef} style={{marginLeft: 10, overflow: 'hidden',transition: '.3s height'}}>
+            <div ref={contentNodeRef} style={{marginLeft: 10, overflow: 'hidden', transition: '.3s height'}}>
                 {
                     props.children
                 }
             </div>
         </div>
-    </TreeBridge.Boundary>
+    </TreeBridge.Boundary>;
 }
 
 function CollapseRootNode() {
@@ -198,11 +212,13 @@ const TreeBridge = createBridge<
     ReactNode
 >()({node: {isMulti: true}});
 
+type CheckedState = boolean | 'indeterminate';
+
 interface Tree {
         name?: any;
         toggleCollapse: (state?: boolean) => void;
-        toggleChecked: (state?: boolean) => void;
-        getStatus: () => {checked: boolean, collapsed: boolean, indeterminate: boolean};
+        toggleChecked: (state?: CheckedState) => void;
+        getStatus: () => {checkState: CheckedState, collapsed: boolean};
         getLeaves: () => RefObject<Tree>[];
         updateCheckStatus():void;
         updateHeight: UpdateHeight;

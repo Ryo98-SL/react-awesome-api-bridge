@@ -1,15 +1,16 @@
-import createBridge from "../../dist/bridge";
-// import createBridge from "../bridge";
+// import createBridge from "../../dist/bridge";
+import createBridge from "../bridge";
 import {PropsWithChildren, useCallback, useEffect, useRef, useState} from "react";
 
 export default function Example1() {
     const CApi = ExaBridge.useAPI('C');
     const BApi = ExaBridge.useAPI('B', {
         onInit: (api) => {
-            console.log("=>(example1.tsx:9) api", api.current?.invokeA());
+            console.log("=>(example1.tsx:9) invokeA by BApi", api.current?.invokeA());
         }
     });
 
+    const [showB, setShowB] = useState(false);
 
     return <>
         <div style={{width: 500, background: 'white', height: 'fit-content', padding: '20px', outline: '1px solid'}}>
@@ -43,7 +44,12 @@ export default function Example1() {
             </div>
 
             <AComponent></AComponent>
-            <BComponent></BComponent>
+
+            <button onClick={() => setShowB(!showB)}>toggle B</button>
+            {
+                showB &&
+                <BComponent></BComponent>
+            }
 
             {/*CComponent is inside the DeepC, but it's api still available!*/}
             <DeepC stacks={3}/>

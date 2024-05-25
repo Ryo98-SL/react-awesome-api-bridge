@@ -24,11 +24,20 @@ export type BoundaryContextValue<A extends APIParams, P = any, O extends BridgeA
     parent?: BoundaryContextValue<A,P, O>;
     payload: P;
 };
-export type BoundaryProps<A extends APIParams, P = any, O extends BridgeAPIOptions<A> = BridgeAPIOptions<A>> = {
-    contextValue?: BoundaryContextValue<A,P, O>;
-} & (undefined extends P ? {
-    payload?: P;
-} : {payload: P})
+export type BoundaryProps<A extends APIParams, P = any, O extends BridgeAPIOptions<A> = BridgeAPIOptions<A>> =
+    undefined extends P ? {
+        contextValue?: BoundaryContextValue<A, P, O>;
+        payload?: P;
+    } : (
+        | {
+        payload: P,
+        contextValue?: BoundaryContextValue<A, P, O>;
+    }
+        | {
+        contextValue: BoundaryContextValue<A, P, O>;
+        payload?: P,
+    });
+
 export type BoundaryAPI<A extends APIParams, O extends BridgeAPIOptions<A> = BridgeAPIOptions<A>, P = any> = {
     payload: P;
     getAPI: <N extends keyof A>(name: N) => ResolveAPI<A,O, N>,
@@ -55,10 +64,21 @@ export interface GetAPIOptions<A extends APIParams, N extends keyof A, O extends
 
 };
 
+export type AllAPI<A extends APIParams, O extends BridgeAPIOptions<A> = BridgeAPIOptions<A>> = {
+    [N in keyof A]?: ResolveAPI<A, O, N> | undefined
+};
+
 export interface UpperOptions<A extends APIParams, O extends BridgeAPIOptions<A> = BridgeAPIOptions<A>, P = any>
 extends BaseOptions<A, O, P>
 {
-    shouldForwardYield?: (contextValue: Pick<BoundaryContextValue<A ,P ,O>, 'payload' | 'parent'>) => any
+    shouldForwardYield?: (boundaryDetail:
+                              Pick<BoundaryContextValue<A ,P ,O>, 'payload' | 'parent'>
+                          & {
+                            allAPI: AllAPI<A, O>
+                          }
+    ) => any;
+
+
 }
 
 export interface GetUpperAPIOptions<A extends APIParams, N extends keyof A, O extends BridgeAPIOptions<A>, P = any>

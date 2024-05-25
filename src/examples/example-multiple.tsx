@@ -17,6 +17,7 @@ export default function ExampleMultiple() {
         introduce: () =>  console.log('03 B')
     }), []);
     EMBridge.useAPI('B', { onInit: (api, initialized) => {
+
         console.log("(root) api", api, initialized.length, initialized);
 
     }})
@@ -68,13 +69,11 @@ function AComponent(){
 
     EMBridge.useAPI('B', {
         onInit: (api, total) => {
+            // When this useAPI hook first executed, it will call this function with other already registered 'B' api,
+            // batched all of it as an array for the second argument(total), and the first argument is undefined(api)
 
-            // This callback will be invoked when it first mounted and lookup all previously mounted useRegister
-            // which have "B" of value of the first parameter, then it invoked as this form "onInit(undefined, total)",
-            // when follow-up useRegister which have "B" of value of the first parameter mounted, it will be invoked
-            // as this form "onInit(api, total)".
-            //
-            // When this callback is invoked, the subsequent state change won't make it call again.
+            // When there is subsequent api registered for 'B', this function will be called, with the first argument as
+            // the subsequently registered api, and the total will be all registered api including the  subsequently registered api
             console.log(`(A)_${prefix}`, api, total);
         }
     });

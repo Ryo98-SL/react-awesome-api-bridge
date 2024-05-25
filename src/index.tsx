@@ -3,22 +3,72 @@ import Example1 from './examples/example1';
 import ExampleMultiple from "./examples/example-multiple";
 import {memo, StrictMode, useMemo, useState, useTransition} from "react";
 import ExampleTree from "./examples/example-tree";
+import {Outlet, Route, Routes,} from "react-router";
+import {HashRouter, NavLink} from "react-router-dom";
+import ExampleNested from "./examples/example-nested";
 
 const root = createRoot(document.getElementById('app')!);
+
+
 root.render(
     <>
         <StrictMode>
-            <div style={{height: '100vh', width: '100vw', flexFlow: 'column', gap: 20, display: 'flex', alignItems: 'center', justifyContent: 'center'}}>
-                {/*<Example1/>*/}
-                {/*<ExampleMultiple/>*/}
-                <ExampleTree/>
+                <HashRouter>
+                    <Routes>
+                        <Route element={<Root/>}>
+                            <Route path={'/'} element={<Example1/>}></Route>
+                            <Route path={'/exampleMultiple'} element={<ExampleMultiple/>}></Route>
+                            <Route path={'/exampleTree'} element={<ExampleTree/>}></Route>
+                            <Route path={'/exampleNested'} element={<ExampleNested/>}></Route>
+                        </Route>
 
-            </div>
 
+                    </Routes>
+                </HashRouter>
         </StrictMode>
     </>
-
 );
+
+
+function Root() {
+
+    return <div style={{
+        height: '100vh',
+        width: '100vw',
+        flexFlow: 'column',
+        gap: 20,
+        display: 'flex',
+        alignItems: 'center',
+        justifyContent: 'center'
+    }}>
+        <div style={{
+            display: 'flex',
+            width: '100%',
+            padding: 20,
+            justifyContent: 'center'
+        }}>
+            <NavLink to={'/'}>Essential</NavLink>
+            &nbsp;
+            <NavLink to={'/exampleMultiple'}>Multiple</NavLink>
+            &nbsp;
+            <NavLink to={'/exampleTree'}>Tree</NavLink>
+            &nbsp;
+            <NavLink to={'/exampleNested'}>Nested</NavLink>
+        </div>
+
+        <div style={{
+            display: 'flex',
+            width: '100%',
+            height: '100%',
+            flex: 1,
+            flexDirection: 'column',
+            justifyContent: 'center',
+            alignItems: 'center'
+        }}>
+            <Outlet/>
+        </div>
+    </div>;
+}
 
 
 function NoMemo() {
