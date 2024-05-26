@@ -1,4 +1,4 @@
-import createBridge from "../../../dist/bridge";
+import createBridge from "../../dist/bridge";
 
 
 export default function ExampleNested() {

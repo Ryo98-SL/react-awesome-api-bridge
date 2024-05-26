@@ -5,7 +5,7 @@ import webpack from "webpack";
 import '@ungap/with-resolvers';
 import {FactoryArgument} from "./configs/webpack.common.config";
 import {exec} from "child_process";
-import {getWorkspaceRoot} from "./utils";
+import { ROOT_PATH} from "./paths";
 
 
 const args = yargs(hideBin(process.argv))
@@ -72,7 +72,7 @@ const args = yargs(hideBin(process.argv))
     console.log('has built')
 
     exec(`npm run build:types`, {
-        cwd: getWorkspaceRoot()
+        cwd: ROOT_PATH
     });
 
 })()

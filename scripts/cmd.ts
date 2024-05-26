@@ -1,13 +1,8 @@
-import fs from 'fs';
 import yargs from "yargs";
 import {hideBin} from "yargs/helpers";
-import webpack from "webpack";
 import '@ungap/with-resolvers';
-import {FactoryArgument} from "./configs/webpack.common.config";
-import {exec, execFile} from "node:child_process";
-import url from 'url';
-import path from "path";
-import {getWorkspaceRoot} from "./utils";
+import {exec} from "node:child_process";
+import {SCRIPTS_PATH} from "./paths";
 import {promisify} from "util";
 
 const args = yargs(hideBin(process.argv))
@@ -38,8 +33,6 @@ type ScriptArg = typeof args;
 
 run(args);
 const _exec = promisify(exec)
-
-const SCRIPTS_PATH = path.join(getWorkspaceRoot(), 'scripts');
 
 async function run(args: ScriptArg) {
     const {watch, serve, env} = await Promise.resolve(args);

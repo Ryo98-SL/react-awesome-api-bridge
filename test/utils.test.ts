@@ -1,5 +1,5 @@
 import {describe, expect, test} from '@jest/globals';
-import {appendToMappedValue, removeArrayElement, tryInvoke} from "../utils";
+import {appendToMappedValue, removeArrayElement, tryInvoke} from "../src/utils";
 
 test('appendToMappedValue', () => {
     const map = new Map<any, any[]>();

@@ -29,5 +29,5 @@ const args = yargs(hideBin(process.argv)).option('env', {
     const server = new WebpackDevServer(devServerOptions, compiler);
 
     await server.start();
-    console.log("=>(serve.ts:33) serve started", );
+    console.log("=>(serve.ts:33) server started", );
 })()

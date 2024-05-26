@@ -9,7 +9,7 @@ import {
     useRef,
     useState
 } from "react";
-import createBridge from "../../../dist/bridge";
+import createBridge from "../../dist/bridge";
 
 
 

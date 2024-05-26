@@ -1,9 +1,7 @@
-import path from 'path';
-
 import {merge} from 'webpack-merge';
 import webpack from "webpack";
-import {SRC_PATH, commonFactory, FactoryArgument} from "./webpack.common.config";
-import {getWorkspaceRoot} from "../utils";
+import {commonFactory, FactoryArgument} from "./webpack.common.config";
+import {BRIDGE_PATH, DIST_PATH} from "../paths";
 
 
 const factory = (arg: FactoryArgument) => {
@@ -15,11 +13,11 @@ const factory = (arg: FactoryArgument) => {
     const configuration = merge(
         commonConfig,
         {
-            entry: path.join(SRC_PATH, './bridge.tsx'),
+            entry: BRIDGE_PATH,
             output: {
                 globalObject: 'this',
                 clean: true,
-                path: path.join(getWorkspaceRoot(), 'dist'),
+                path: DIST_PATH,
                 filename: 'bridge.js',
                 library: {
                     name: 'RAABridge',
