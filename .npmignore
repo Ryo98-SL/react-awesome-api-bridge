@@ -7,3 +7,5 @@ src/
 jest.config.ts
 coverage/
 dist/utils.d.ts
+web-server-dev/
+test/
