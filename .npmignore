@@ -1,6 +1,9 @@
 node_modules/
-webpack.config.ts
+scripts/
 .idea/
 tsconfig-for-webpack.json
 babel.config.js
 src/
+jest.config.ts
+coverage/
+dist/utils.d.ts

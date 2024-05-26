@@ -9,7 +9,9 @@ import {
     useRef,
     useState
 } from "react";
-import createBridge from "../bridge";
+import createBridge from "../../../dist/bridge";
+
+
 
 
 export default function ExampleTree() {
@@ -211,6 +213,7 @@ const TreeBridge = createBridge<
     { parent: Tree, node: Tree },
     ReactNode
 >()({node: {isMulti: true}});
+console.log("=>(example-tree.tsx:214) TreeBridge", TreeBridge);
 
 type CheckedState = boolean | 'indeterminate';
 

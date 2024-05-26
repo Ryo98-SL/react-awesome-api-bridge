@@ -30,6 +30,7 @@ import {
     ResolveInit,
     UpperOptions
 } from "./types";
+import {appendToMappedValue, genHookId, removeArrayElement, tryInvoke} from "./utils";
 
 type PayloadParameter<T> =   undefined extends T ? [payload?: T] : [payload: T];
 const createBridge = <
@@ -56,9 +57,7 @@ function genOutput<A extends APIParams,P = any, const O extends BridgeAPIOptions
         parent: undefined,
         payload
     };
-
     const BridgeContext = createContext(defaultContextValue);
-
     // Is used to cache the onInit callback of useAPI and useUpperAPI.
     const cacheInitCbMap = new WeakMap<ApiNList<A, O, keyof A>, {
         onInit: Function;
@@ -414,58 +413,10 @@ function useUniqueElementRef<T>(entity: RefObject<T>[] | RefObject<T>){
 
 }
 
-const removeArrayElement = <T,>(entity: T[] | T, element: any)  => {
-    if(Array.isArray(entity)) {
-        const deleteIndex = entity.findIndex(r => r === element);
-        if(deleteIndex > -1) {
-            entity.splice(deleteIndex, 1);
-        }
-    }
-};
-
-function tryInvoke(mayFn: any): boolean{
-    if(typeof mayFn === 'function') {
-        mayFn()
-        return true;
-    }
-    return false;
-}
-
-const prefixes: string[] = [];
-let lastOccupiedNumber = 0;
-const genHookId = () => {
-    if(lastOccupiedNumber < Number.MAX_SAFE_INTEGER) {
-        lastOccupiedNumber++
-    } else {
-        prefixes.push(String.fromCharCode(prefixes.length))
-        lastOccupiedNumber = 0;
-    }
-    return [...prefixes,lastOccupiedNumber].join('');
-}
-
 function useHookId(): HookId{
     return useMemo(() => {
-        return  process.env.WEBPACK_SERVE === 'true' ? genHookId() : Symbol('hookId')
+        return  process.env.NODE_ENV === 'development' ? genHookId() : Symbol('hookId')
     }, []);
-}
-
-
-
-function appendToMappedValue<K extends object, E>(map: WeakMap<K, E[]>, key: K, element: E){
-    let arr = map.get(key);
-    if (typeof arr === 'undefined') {
-       arr = [element];
-        map.set(key, arr);
-    } else {
-        arr.push(element);
-    }
-
-    return () => {
-        removeArrayElement(arr, element);
-        if(arr?.length === 0) {
-            map.delete(key);
-        }
-    }
 }
 
 

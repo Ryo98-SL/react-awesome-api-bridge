@@ -56,6 +56,29 @@ Once api is registered, it will be available anywhere in Function Component.
             console.log(aComponentAPI.current?.getCount());
         }}>show count of A </button>
     }
+    
+    function BWrapper() {
+        return <><B/></>
+    }
+    
+    function Surface() {
+        return <><BWrapper/></>
+    }
+    
+    
+    function APP() {
+        
+        return <>
+            <A/>
+            {/*
+             The B is within this component,
+             but the registered api ref object of A is
+             still avaliable to B.
+             */}
+            <Surface/>
+            <B/>
+        </>
+    }   
         
 ```
 
