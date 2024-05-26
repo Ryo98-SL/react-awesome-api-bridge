@@ -27,7 +27,7 @@ const args = yargs(hideBin(process.argv))
 
 
 (async function (){
-    const {watch, env} = await Promise.resolve(args);
+    const {watch, env} = await args;
 
     const bundleConfigModule = await import('./configs/webpack.build.config');
     const {default: bundleConfigFactory} = bundleConfigModule;

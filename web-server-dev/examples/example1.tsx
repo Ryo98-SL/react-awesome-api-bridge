@@ -6,7 +6,7 @@ export default function Example1() {
     const CApi = ExaBridge.useAPI('C');
     const BApi = ExaBridge.useAPI('B', {
         onInit: (api) => {
-            console.log("=>(example1.tsx:9) invokeA by BApi", api.current?.invokeA());
+            console.log("=>(example1.tsx:9) invokeA by BApi", api.current?.invokeA('Root'));
         }
     });
 
@@ -31,7 +31,7 @@ export default function Example1() {
                 {/*<button onClick={BApi.current?.callA}>call A by proxying B</button>*/}
 
                 {/*Good,it will dynamic access "callA"  method and invoke once the arrow function of onClick is called*/}
-                <button onClick={() => BApi.current?.invokeA()}>Indirectly invoke "bark" of A by invoking "invokeA" of B</button>
+                <button onClick={() => BApi.current?.invokeA('indirect')}>Indirectly invoke "bark" of A by invoking "invokeA" of B</button>
 
                 <button onClick={() => {
                 }}
@@ -58,7 +58,7 @@ export default function Example1() {
         <div>
             <button onClick={() => {
                 const AApi = ExaBridge.getAPI('A');
-                AApi.current?.bark()
+                AApi.current?.bark('outer')
             }}>
                 callA without hook
             </button>
@@ -71,19 +71,15 @@ function AComponent() {
     const timerRef = useRef<any>();
     const [content, setContent] = useState('');
     ExaBridge.useRegister('A', () => ({
-        bark() {
-            let voice = 'Woof!Woof!';
+        bark(form: string) {
+            let voice = `from:${form}`;
             setContent(voice);
             console.log(`A: ${voice}`,);
-            clearTimeout(timerRef.current);
-            timerRef.current = setTimeout(() => {
-                setContent('');
-            }, 1000);
         }
     }), []);
 
 
-    return <div style={{background: 'salmon'}}>
+    return <div role={'alert'} style={{background: 'salmon'}}>
         AComponent
         {
             content && `: ${content}`
@@ -93,9 +89,9 @@ function AComponent() {
 
 function BComponent() {
     const AApi = ExaBridge.useAPI('A');
-    const invokeA = useCallback(() => {
+    const invokeA = useCallback((form: string) => {
         console.log("B: Hi, A, can you bark?" );
-        AApi.current?.bark();
+        AApi.current?.bark(form);
 
     }, []);
 
@@ -106,7 +102,7 @@ function BComponent() {
 
     return <div style={{background: 'lightcyan'}}>
         BComponent
-        <button onClick={invokeA}>invoke A's bark</button>
+        <button onClick={invokeA.bind(null, 'B')}>invoke A's bark</button>
         <button onClick={() => {
             console.log("B: Hi, C, can you move 10 units?" );
             getAPI('C').current?.move(10);
@@ -154,10 +150,10 @@ function DeepC(props: {layerIndex?: number, stacks: number}) {
 const ExaBridge = createBridge<
     {
         A: {
-            bark():void;
+            bark(form: string):void;
         },
         B: {
-            invokeA():void;
+            invokeA(form: string):void;
         }
         C: {
             move(delta: number): void;

@@ -14,7 +14,8 @@
     "build:dev": "npx tsx ./scripts/cmd.ts --env development --watch",
     "serve": "npx tsx ./scripts/cmd.ts --env production --serve",
     "serve:dev": "npx tsx ./scripts/cmd.ts --env development --serve",
-    "test": "jest"
+    "test": "jest",
+    "test-u": "jest -u"
   },
   "repository": {
     "type": "git",
@@ -31,6 +32,8 @@
     "@babel/preset-env": "^7.23.9",
     "@babel/preset-react": "^7.23.3",
     "@babel/preset-typescript": "^7.23.3",
+    "@testing-library/jest-dom": "^6.4.5",
+    "@testing-library/react": "^15.0.7",
     "@types/node": "^20.12.7",
     "@types/react": "^18.2.48",
     "@types/react-dom": "^18.2.18",

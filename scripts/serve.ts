@@ -16,7 +16,7 @@ const args = yargs(hideBin(process.argv)).option('env', {
 
 
 (async function () {
-    const {env} = await  Promise.resolve(args);
+    const {env} = await args;
     const factoryArg: FactoryArgument = {
        env
     }
@@ -29,5 +29,5 @@ const args = yargs(hideBin(process.argv)).option('env', {
     const server = new WebpackDevServer(devServerOptions, compiler);
 
     await server.start();
-    console.log("=>(serve.ts:33) server started", );
+    console.log("server started", );
 })()
