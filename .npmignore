@@ -9,3 +9,4 @@ coverage/
 dist/utils.d.ts
 web-server-dev/
 test/
+tsconfig.json
