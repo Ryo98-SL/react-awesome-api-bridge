@@ -15,8 +15,8 @@
     "build:analyze": "npx tsx ./scripts/build.ts --env production --analyze",
     "serve": "npx tsx ./scripts/cmd.ts --env production --serve",
     "serve:dev": "npx tsx ./scripts/cmd.ts --env development --serve",
-    "test": "jest",
-    "test-u": "jest -u"
+    "test": "npm run build && jest",
+    "test-u": "npm run build && jest -u"
   },
   "repository": {
     "type": "git",
