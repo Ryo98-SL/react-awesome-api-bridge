@@ -6,6 +6,7 @@ import '@ungap/with-resolvers';
 import {FactoryArgument} from "./configs/webpack.common.config";
 import {exec} from "child_process";
 import { ROOT_PATH} from "./paths";
+import {BundleFactoryArgument} from "./configs/webpack.build.config";
 
 
 const args = yargs(hideBin(process.argv))
@@ -21,18 +22,26 @@ const args = yargs(hideBin(process.argv))
         default: false,
         alias: 'w',
     })
+    .option('analyze', {
+        describe: 'turn on the bundle analyzer',
+        type: 'boolean',
+        default: false,
+    })
     .strict()
     .help()
     .parse();
 
 
 (async function (){
-    const {watch, env} = await args;
+    const {watch, env, analyze} = await args;
 
     const bundleConfigModule = await import('./configs/webpack.build.config');
     const {default: bundleConfigFactory} = bundleConfigModule;
 
-    const factoryArg: FactoryArgument = {env};
+    const factoryArg: BundleFactoryArgument = {
+        env,
+        analyze
+    };
 
     const bundleConfig =  bundleConfigFactory(factoryArg);
 

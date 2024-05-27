@@ -2,9 +2,12 @@ import {merge} from 'webpack-merge';
 import webpack from "webpack";
 import {commonFactory, FactoryArgument} from "./webpack.common.config";
 import {BRIDGE_PATH, DIST_PATH} from "../paths";
+import {BundleAnalyzerPlugin} from "webpack-bundle-analyzer"
 
-
-const factory = (arg: FactoryArgument) => {
+export type BundleFactoryArgument = FactoryArgument & {
+    analyze?: boolean;
+};
+const factory = (arg: BundleFactoryArgument) => {
     process.env.NODE_ENV = arg.env;
     const isDev = arg.env === 'development' ;
 
@@ -33,6 +36,7 @@ const factory = (arg: FactoryArgument) => {
                     root: 'React'
                 }
             },
+            plugins: arg.analyze ? [new BundleAnalyzerPlugin()] : []
         },
         isDev ? devConfig : proConfig,
     );
