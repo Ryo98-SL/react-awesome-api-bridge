@@ -3,7 +3,6 @@ import {useEffect, useId, useRef, useState} from "react";
 
 
 export const id1 = `log-panel-outer__`;
-export const id2 = `log-panel-inner__`;
 
 export default function ExampleMultiple() {
     const id = useId();

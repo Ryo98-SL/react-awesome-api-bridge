@@ -16,7 +16,7 @@ import createBridge from "../../dist/bridge";
 
 export default function ExampleTree() {
     const rootNodeAPI = TreeBridge.useAPI('node');
-
+    const [logContent, setLogContent] = useState('');
     return <div style={{width: 500, background: 'white', height: 'fit-content', padding: '20px', outline: '1px solid'}}>
         <TreeNode name={'Root'}>
             <TreeNode name={'Sub1'}>
@@ -41,8 +41,20 @@ export default function ExampleTree() {
         </TreeNode>
 
         <button onClick={() => {
-            console.log(rootNodeAPI[0]?.current?.getStatus());
-        }}>show root status</button>
+            const status = rootNodeAPI[0]?.current?.getStatus();
+            if(status) {
+                setLogContent(`checked(${status.checkState}),collapsed(${status.collapsed})`)
+            } else {
+                setLogContent( '')
+            }
+
+        }}
+                data-testid={`effect-show-root-status`}
+        >show root status</button>
+
+        <p data-testid={'log-area'}>
+            {logContent}
+        </p>
     </div>
 }
 
@@ -161,13 +173,15 @@ function  TreeNode(props: PropsWithChildren<{name: ReactNode}>){
         <div style={{display: 'flow-root'}}>
             <div style={{border: '1px solid #eee', outline: 'none', lineHeight: 2, display: 'block'}}>
                 <label>
-                    <input ref={checkboxRef} type={'checkbox'} checked={typeof checkState === 'boolean' ? checkState : false}
+                    <input ref={checkboxRef} type={'checkbox'}
+                           data-testid={`cb-${props.name}`}
+                           checked={typeof checkState === 'boolean' ? checkState : false}
                            onChange={(e) => {
                                setCheckState(e.target.checked);
                            }}/>
                     <span>{props.name}</span>
                 </label>
-                {props.children && <button onClick={setCollapsed.bind(null, (ps) => !ps)}>
+                {props.children && <button data-testid={`toggle-${props.name}`} onClick={setCollapsed.bind(null, (ps) => !ps)}>
                     {collapsed ? "expand" : "collapse"}
                 </button>}
             </div>
@@ -191,7 +205,7 @@ function CollapseRootNode() {
         rootAPI?.current?.toggleCollapse(true);
     }
 
-    return <button onClick={collapseRoot}>collapse root</button>
+    return <button data-testid={`effect-collapse-root`} onClick={collapseRoot}>collapse root</button>
 }
 
 function ToggleSub2Node() {
@@ -205,7 +219,7 @@ function ToggleSub2Node() {
         rootAPI?.current?.getLeaves().find(leave => leave.current?.name === 'Sub2')?.current?.toggleCollapse()
     }
 
-    return <button onClick={toggle}>toggle Sub2</button>
+    return <button data-testid={`effect-toggle-Sub2`} onClick={toggle}>toggle Sub2</button>
 }
 
 
