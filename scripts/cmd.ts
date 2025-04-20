@@ -44,6 +44,7 @@ const args = yargs(hideBin(process.argv))
         });
 
         buildProcess.stdout?.on('error', (err) => {
+            console.error(err.toString());
             reject(err)
         });
 

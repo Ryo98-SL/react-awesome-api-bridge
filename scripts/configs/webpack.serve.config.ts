@@ -5,7 +5,7 @@ import {merge} from "webpack-merge";
 import {commonFactory, FactoryArgument} from "./webpack.common.config";
 import HtmlWebpackPlugin from "html-webpack-plugin";
 import "webpack-dev-server"
-import { ROOT_PATH} from "../paths";
+import {BABEL_CONFIG_PATH, ROOT_PATH} from "../paths";
 
 
 const serveFactory = (arg: FactoryArgument) => {
@@ -15,6 +15,19 @@ const serveFactory = (arg: FactoryArgument) => {
         {
             mode: arg.env === 'production' ? arg.env : 'development',
             entry: path.join(ROOT_PATH, './web-server-dev/index.tsx'),
+            resolve:{
+              extensions: ['.tsx', '.ts', '.js', '.cjs', '.mjs']
+            },
+            module: {
+                rules: [{
+                    test: /\.(ts|js)x?$/,
+                    exclude: /node_modules/,
+                    loader: 'babel-loader',
+                    options: {
+                        configFile: BABEL_CONFIG_PATH
+                    }
+                }],
+            },
             plugins: [
                 new HtmlWebpackPlugin({ inject: true, template: path.join(ROOT_PATH, './web-server-dev/index.html') }),
             ],

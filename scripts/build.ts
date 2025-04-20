@@ -5,8 +5,8 @@ import webpack from "webpack";
 import '@ungap/with-resolvers';
 import {FactoryArgument} from "./configs/webpack.common.config";
 import {exec} from "child_process";
-import { ROOT_PATH} from "./paths";
-import {BundleFactoryArgument} from "./configs/webpack.build.config";
+import {BRIDGE_PATH, DIST_PATH, ROOT_PATH, TS_CONFIG_PATH} from "./paths";
+import esbuild from 'esbuild';
 
 
 const args = yargs(hideBin(process.argv))
@@ -32,51 +32,48 @@ const args = yargs(hideBin(process.argv))
     .parse();
 
 
+type EsBuildOptions = Parameters<typeof esbuild.build>[0];
 (async function (){
     const {watch, env, analyze} = await args;
 
-    const bundleConfigModule = await import('./configs/webpack.build.config');
-    const {default: bundleConfigFactory} = bundleConfigModule;
+    try {
+        const start = performance.now();
 
-    const factoryArg: BundleFactoryArgument = {
-        env,
-        analyze
-    };
-
-    const bundleConfig =  bundleConfigFactory(factoryArg);
-
-
-    const compiler = webpack(bundleConfig);
-    const { resolve, reject, promise: bundleDone } = Promise.withResolvers();
-
-    if(watch) {
-        const watching = compiler.watch({
-            aggregateTimeout: 300,
-            poll: undefined
-        } , (err, stats) => {
-            if(err) {
-                reject(err);
+        const commonConfigs: EsBuildOptions = {
+            entryPoints: [BRIDGE_PATH],
+            tsconfig: TS_CONFIG_PATH,
+            jsx: "transform",
+            bundle: true,
+            outdir: DIST_PATH,
+            external: ['react'],
+            define: {
+                'production': env
             }
-            resolve('watch');
-            stats && console.log(stats.toString({colors: true, chunks: true}))
-        });
-        // watching.close((closeErr) => {
-        //
-        // })
-    } else {
-        compiler.run((err, stats) => {
-            if(err) {
-                reject(err)
-            }
-            resolve('')
-            stats && console.log(stats.toString({colors: true, chunks: true}))
-            compiler.close((closeError) => {
+        };
 
-            });
-        });
+        const cjsConfig: EsBuildOptions = {
+            ...commonConfigs,
+            format: 'cjs',
+        };
+
+        const esmConfig: EsBuildOptions = {
+            ...commonConfigs,
+            format: 'esm',
+            outExtension: {'.js': '.mjs'},
+        };
+
+        const processes = [
+            cjsConfig,
+            esmConfig
+        ].map((config) => esbuild.build(config));
+
+        await Promise.all(processes);
+
+        console.log(`✔ esbuild built: ${performance.now() - start}ms`)
+
+    } catch (e) {
+        console.log('🤡 esbuild error:', e);
     }
-
-    await bundleDone;
 
     console.log('has built')
 
