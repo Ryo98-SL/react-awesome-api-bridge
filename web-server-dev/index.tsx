@@ -6,6 +6,7 @@ import ExampleTree from "./examples/example-tree";
 import {Outlet, Route, Routes,} from "react-router";
 import {HashRouter, NavLink} from "react-router-dom";
 import ExampleNested from "./examples/example-nested";
+import ExampleAsync from "./examples/example-async";
 
 const root = createRoot(document.getElementById('app')!);
 
@@ -20,6 +21,7 @@ root.render(
                             <Route path={'/exampleMultiple'} element={<ExampleMultiple/>}></Route>
                             <Route path={'/exampleTree'} element={<ExampleTree/>}></Route>
                             <Route path={'/exampleNested'} element={<ExampleNested/>}></Route>
+                            <Route path={'/exampleAsync'} element={<ExampleAsync/>}></Route>
                         </Route>
 
 
@@ -54,6 +56,8 @@ function Root() {
             <NavLink to={'/exampleTree'}>Tree</NavLink>
             &nbsp;
             <NavLink to={'/exampleNested'}>Nested</NavLink>
+            &nbsp;
+            <NavLink to={'/exampleAsync'}>Async</NavLink>
         </div>
 
         <div style={{

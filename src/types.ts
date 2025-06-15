@@ -1,4 +1,4 @@
-import {DependencyList, RefObject} from "react";
+import {RefObject} from "react";
 
 export interface APIOptions {
     isMulti?: boolean;
@@ -77,8 +77,6 @@ extends BaseOptions<A, O, P>
                             allAPI: AllAPI<A, O>
                           }
     ) => any;
-
-
 }
 
 export interface GetUpperAPIOptions<A extends APIParams, N extends keyof A, O extends BridgeAPIOptions<A>, P = any>
@@ -87,5 +85,17 @@ export interface GetUpperAPIOptions<A extends APIParams, N extends keyof A, O ex
 
 }
 
+export interface GetAPIAsyncOptions<A extends APIParams, O extends BridgeAPIOptions<A>, P = any> extends BaseOptions<A, O, P>{
+    initial?: boolean;
+}
+
 
 type ResetReturn<F, NR> = F extends (...args:infer P) => any ? (...args: P) => NR : F;
+
+export interface BridgeResolver<A extends APIParams, O extends BridgeAPIOptions<A>, N extends keyof A > {
+    initial: boolean;
+    promise: Promise<ApiNList<A, O, N>>;
+    resolve: (apiNList: ApiNList<A, O, N>) => void;
+}
+
+export type ApiNList<A extends APIParams, O extends BridgeAPIOptions<A>, N extends keyof A> = ConditionByIsMulti<O, N, RefObject<A[N]>[], RefObject<A[N]>>;

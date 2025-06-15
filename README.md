@@ -379,6 +379,22 @@ here will explain how each hook in the B component is working.
 
 Besides useAPI and useUpperAPI, the example also show a usage of the useUpperBoundaryPayload and its accept a same option object with useUpperAPI, it will get the payload of global boundary because its shouldForwardField is same as the last useUpperAPI used. Global payload can only be specified in the bridge creation, by passing first argument to createBridge.
 
+## getAPIAsync
+This method will return a promise that will fulfill when specified api has been registered.
+```tsx
+    AsyncBridge.getAPIAsync('getName')
+    .then(api => {
+        return api.current!();
+    })
+    .then((name) => {
+        console.log('name:',name)
+    });
+    
+
+    // If you wish to use the API registered after calling getAPIAsync , pass the "initial: false" option
+    AsyncBridge.getAPIAsync('getName', { initial: false })
+```
+
 ## Hook Counterparts
 The hooks noticed above have their own normal version counterpart respectively:
 ```tsx

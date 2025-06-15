@@ -14,14 +14,15 @@ import React, {
 } from "react";
 import {
     AllAPI,
+    ApiNList,
     APIParams,
     BaseOptions,
     BoundaryAPI,
     BoundaryContextValue,
     BoundaryProps,
     Bridge,
-    BridgeAPIOptions,
-    ConditionByIsMulti,
+    BridgeAPIOptions, BridgeResolver,
+    GetAPIAsyncOptions,
     GetAPIOptions,
     GetUpperAPIOptions,
     OnInit,
@@ -49,9 +50,10 @@ const createBridge = <
 
 export default createBridge;
 
-type ApiNList <A extends APIParams, O extends BridgeAPIOptions<A>, N extends keyof A> = ConditionByIsMulti<O, N, RefObject<A[N]>[], RefObject<A[N]>>;
-
 function genOutput<A extends APIParams,P = any, const O extends BridgeAPIOptions<A> = BridgeAPIOptions<A>>(payload: P, bridgeOptions?: O) {
+
+    type MappedApiNList = ApiNList<A, O, keyof A>;
+
     const defaultContextValue: BoundaryContextValue<A,P,O> = {
         bridge: {},
         parent: undefined,
@@ -59,10 +61,24 @@ function genOutput<A extends APIParams,P = any, const O extends BridgeAPIOptions
     };
     const BridgeContext = createContext(defaultContextValue);
     // Is used to cache the onInit callback of useAPI and useUpperAPI.
-    const cacheInitCbMap = new WeakMap<ApiNList<A, O, keyof A>, {
+    const cacheInitCbMap = new WeakMap<MappedApiNList, {
         onInit: Function;
         hookId: HookId;
     }[]>();
+
+
+
+
+    const pendingResolverMap = new Map<MappedApiNList, Map<BoundaryContextValue<A, P,O>, BridgeResolver<A,O,keyof A>[] >>
+
+    const _getPendingContextMap = <N extends keyof A,>(_apiNList: ApiNList<A, O, N>) => {
+        return pendingResolverMap.get(_apiNList) as Map<BoundaryContextValue<A, P,O>, BridgeResolver<A,O,N>[] > | undefined;
+    }
+    const _setPendingContextMap = <N extends keyof A,>(_apiNList: ApiNList<A, O, keyof A>, map: Map<BoundaryContextValue<A, P, O>, BridgeResolver<A, O, N>[]>) => {
+        // @ts-ignore
+        return pendingResolverMap.set(_apiNList, map);
+    }
+
 
     function getIsMulti<N extends keyof A>(name: N) {
         return bridgeOptions?.[name]?.isMulti
@@ -128,6 +144,7 @@ function genOutput<A extends APIParams,P = any, const O extends BridgeAPIOptions
         return _outerContextValue || ownContextValue;
     }
 
+    // use to store initialized useAPI or useAPIUpper
     const initializedOnInitMap = new Map<RefObject<A[keyof A]>, HookId[]>();
 
     function mountHookInitEffect<N extends keyof A, ANL extends ResolveAPI<A, O, N>>
@@ -262,12 +279,67 @@ function genOutput<A extends APIParams,P = any, const O extends BridgeAPIOptions
         return _getApiDesc(_name, parent.bridge);
     }
 
+    function _getResolverOrCreateWhenMissing<N extends keyof A>(apiNList: ApiNList<A, O, N>, contextValue: BoundaryContextValue<A, P, O>, initial: boolean) {
+
+        let contextValueMap = _getPendingContextMap(apiNList);
+
+        if (!contextValueMap) {
+            contextValueMap = new Map<BoundaryContextValue<A, P, O>, BridgeResolver<A, O, N>[]>();
+            _setPendingContextMap(apiNList, contextValueMap);
+        }
+
+        let resolvers = contextValueMap.get(contextValue);
+
+        if (!resolvers) {
+            resolvers = [];
+            contextValueMap.set(contextValue, resolvers);
+        }
+
+        let resolver = resolvers.find(r => r.initial);
+
+        if (!resolver || !initial) {
+            let outerResolve: (_apiNList: typeof apiNList) => void;
+            const newPromise = new Promise<typeof apiNList>(resolve => {
+                outerResolve = resolve;
+            });
+
+            resolver = {
+                initial,
+                promise: newPromise,
+                resolve: outerResolve!
+            }
+
+            resolvers.push(resolver);
+        }
+
+
+        return {
+            resolver,
+            contextValueMap,
+            resolvers,
+        };
+    }
+
     return {
         Boundary,
         initCbMap: cacheInitCbMap,
         initializedCallbacksMap: initializedOnInitMap,
         getAPI<N extends keyof A, >(name: N, contextValue: BoundaryContextValue<A, P, O> = defaultContextValue) {
             return _getApiDesc(name, contextValue.bridge).apiNList;
+        },
+        getAPIAsync<N extends keyof A, >(name: N, options?: GetAPIAsyncOptions<A, O, P>) {
+
+            const {contextValue,initial} = {
+                contextValue: defaultContextValue,
+                initial: true,
+                ...options,
+            };
+
+            const {apiNList} = _getApiDesc(name, contextValue.bridge);
+            const {resolver} = _getResolverOrCreateWhenMissing(apiNList, contextValue, initial);
+
+
+            return resolver.promise;
         },
         useAPI: <N extends keyof A, >(name: N, hookOptions?: GetAPIOptions<A, N, O>): ApiNList<A, O, N> => {
             const {onInit} = hookOptions || {};
@@ -302,18 +374,31 @@ function genOutput<A extends APIParams,P = any, const O extends BridgeAPIOptions
 
             const apiRef = useUniqueElementRef(apiNList);
 
+            const registerId = useHookId();
+
             //init effect ---- start
             useImperativeHandle(apiRef, () => {
                 return init();
             }, deps);
             useEffect(() => {
                 let clearFns: any[] = [];
+
+                const {resolvers, resolver: initialResolver} = _getResolverOrCreateWhenMissing(apiNList, contextValue, true);
+
+                resolvers.forEach((resolver) => {
+                    resolver.resolve(apiNList);
+                });
+
+                resolvers.length = 0;
+                resolvers.push(initialResolver);
+
+
                 const callbacks = cacheInitCbMap.get(apiNList);
                 callbacks?.filter((initInfo) => {
                     return !initializedOnInitMap.get(apiRef)?.includes(initInfo.hookId)
                 })
                     .forEach(initInfo => {
-                        appendToMappedValue(initializedOnInitMap, apiRef, initInfo.hookId);
+                        clearFns.push(appendToMappedValue(initializedOnInitMap, apiRef, initInfo.hookId));
 
                         const onInit = initInfo.onInit;
                         if (isMulti) {
@@ -348,7 +433,7 @@ function genOutput<A extends APIParams,P = any, const O extends BridgeAPIOptions
                 _name: N1,
                 options?: GetUpperAPIOptions<A, N1, O, P>
             ) => {
-                return _getUpperApiDesc(contextValue, _name, options)?.apiNList;
+                return _getUpperApiDesc(options?.contextValue || contextValue, _name, options)?.apiNList;
             }, []);
 
             const getUpperBoundaryPayload = useCallback((
@@ -359,11 +444,24 @@ function genOutput<A extends APIParams,P = any, const O extends BridgeAPIOptions
                 return parent.payload;
             }, []);
 
+            const getAPIAsync = <N1 extends keyof A>(_name: N1, options?: GetAPIAsyncOptions<A, O, P>) => {
+                const { initial} = {
+                    initial: true,
+                    ...options,
+                };
+
+                const {apiNList} = _getApiDesc(_name, (options?.contextValue || contextValue).bridge);
+                const {resolver} = _getResolverOrCreateWhenMissing(apiNList, contextValue , initial);
+
+                return resolver.promise;
+            }
+
             return {
                 getAPI,
                 getBoundaryPayload,
                 getUpperAPI,
-                getUpperBoundaryPayload
+                getUpperBoundaryPayload,
+                getAPIAsync,
             }
         },
         useUpperAPI: <N extends keyof A>(name: N, hookOptions?: GetUpperAPIOptions<A, N, O, P>): ApiNList<A, O, N> | undefined  => {
