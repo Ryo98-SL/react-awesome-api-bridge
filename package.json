@@ -1,6 +1,6 @@
 {
   "name": "@ryo-98/react-api-bridge",
-  "version": "0.3.1",
+  "version": "1.0.0",
   "license": "MIT",
   "description": "A registry for component imperative api",
   "main": "dist/bridge.cjs",
@@ -75,10 +75,14 @@
   },
   "keywords": [
     "react",
+    "api-bridge",
     "react-bridge",
     "react-api-bridge",
     "react-registry",
     "react-no-forwardRef",
-    "react-action-manager"
+    "react-action-manager",
+    "typescript",
+    "react-hooks",
+    "中文文档"
   ]
 }
