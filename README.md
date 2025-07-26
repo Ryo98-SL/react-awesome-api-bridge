@@ -3,7 +3,7 @@
 
 A React library for sharing imperative APIs between components without prop drilling. Register APIs in one component and access them anywhere in your component tree.
 
-![logo](https://github.com/Ryo98-SL/react-awesome-api-bridge/react-api-bridge-logo.png)
+<img src="./logo/react-api-bridge-logo.png" alt="Alt text" width="100%" style="object-fit: contain"  height="200">
 
 ## Why Use This?
 
