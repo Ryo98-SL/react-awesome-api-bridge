@@ -4,7 +4,7 @@
 
 一个用于在 React 组件之间共享命令式 API 而无需属性传递的库。在一个组件中注册 API，然后在组件树的任何地方访问它们。
 
-<img src="./logo/react-api-bridge-logo.png" alt="Alt text" width="100%" style="object-fit: contain"  height="200">
+<img src="./logo/react-api-bridge-logo.png" alt="Alt text" width="200"  height="auto">
 
 ## 为什么使用这个库？
 

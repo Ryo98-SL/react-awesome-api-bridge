@@ -3,7 +3,7 @@
 
 A React library for sharing imperative APIs between components without prop drilling. Register APIs in one component and access them anywhere in your component tree.
 
-<img src="./logo/react-api-bridge-logo.png" alt="Alt text" width="100%" style="object-fit: contain"  height="200">
+<img src="./logo/react-api-bridge-logo.png" alt="Alt text" width="200"  height="auto">
 
 ## Why Use This?
 
