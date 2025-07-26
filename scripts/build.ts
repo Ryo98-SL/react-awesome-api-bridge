@@ -5,9 +5,13 @@ import webpack from "webpack";
 import '@ungap/with-resolvers';
 import {FactoryArgument} from "./configs/webpack.common.config";
 import {exec} from "child_process";
-import {BRIDGE_PATH, DIST_PATH, ROOT_PATH, TS_CONFIG_PATH} from "./paths";
+import {ENTRY_PATH, DIST_PATH, ROOT_PATH, SRC_PATH, TS_CONFIG_PATH} from "./paths";
 import esbuild from 'esbuild';
+import path from "path";
 
+import {glob} from "glob";
+import fs from "fs-extra";
+import escapeStringRegexp from 'escape-string-regexp';
 
 const args = yargs(hideBin(process.argv))
     .option('env', {
@@ -35,31 +39,62 @@ const args = yargs(hideBin(process.argv))
 type EsBuildOptions = Parameters<typeof esbuild.build>[0];
 (async function (){
     const {watch, env, analyze} = await args;
+    const ESOutDir = DIST_PATH + '/es';
+    const CJsOutDir = DIST_PATH + '/lib';
 
     try {
+        exec(`npm run build:types -- --outDir ${CJsOutDir}`);
+        exec(`npm run build:types -- --outDir ${ESOutDir}`);
+
         const start = performance.now();
 
+        const globPattern = path.normalize(SRC_PATH).replaceAll(path.sep, '/') + '/**/*.{ts,tsx}';
+
+        const [esEntries, typeFiles] = (await glob(globPattern))
+            .reduce<[string[], string[]]>((groups, path) => {
+                const isTypeFile = path.endsWith('.d.ts');
+                groups[isTypeFile ? 1 : 0].push(path)
+
+                return groups
+            }, [ [], [] ]);
+
+
+        for (const dir of [CJsOutDir, ESOutDir]) {
+            typeFiles.forEach(typeFilePath => {
+                const writePath = typeFilePath.replace(new RegExp(`^${escapeStringRegexp(SRC_PATH)}`), dir).replaceAll('/', path.sep);
+
+                fs.copy(
+                    typeFilePath,
+                    writePath
+                )
+            });
+        }
+
+
+
+
+
         const commonConfigs: EsBuildOptions = {
-            entryPoints: [BRIDGE_PATH],
+            entryPoints: esEntries,
+            bundle: false,
             tsconfig: TS_CONFIG_PATH,
             jsx: "transform",
-            bundle: true,
-            outdir: DIST_PATH,
-            external: ['react'],
             define: {
                 'production': env
-            }
+            },
+
         };
 
         const cjsConfig: EsBuildOptions = {
             ...commonConfigs,
+            outdir: CJsOutDir,
             format: 'cjs',
         };
 
         const esmConfig: EsBuildOptions = {
             ...commonConfigs,
+            outdir: ESOutDir,
             format: 'esm',
-            outExtension: {'.js': '.mjs'},
         };
 
         const processes = [
@@ -77,8 +112,6 @@ type EsBuildOptions = Parameters<typeof esbuild.build>[0];
 
     console.log('has built')
 
-    exec(`npm run build:types`, {
-        cwd: ROOT_PATH
-    });
+
 
 })()

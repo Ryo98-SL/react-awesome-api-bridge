@@ -4,6 +4,8 @@
 
 一个用于在 React 组件之间共享命令式 API 而无需属性传递的库。在一个组件中注册 API，然后在组件树的任何地方访问它们。
 
+![logo](https://github.com/Ryo98-SL/react-awesome-api-bridge/react-api-bridge-logo.png)
+
 ## 为什么使用这个库？
 
 - **无属性传递**：无需通过属性传递 refs，即可从任何地方访问组件 API
@@ -26,7 +28,7 @@ npm install @ryo-98/react-api-bridge
 ```jsx
 import createBridge from '@ryo-98/react-api-bridge';
 
-// 创建桥接注册中心
+// 创建Bridge注册中心
 const bridge = createBridge();
 
 // 注册 API 的组件
@@ -67,16 +69,16 @@ function App() {
 
 ## 核心概念
 
-### 1. 创建桥接
+### 1. 创建Bridge
 
 ```jsx
-// 基础桥接
+// 基础Bridge
 const bridge = createBridge();
 
-// 带有全局载荷的桥接
+// 带有全局载荷的Bridge
 const bridge = createBridge('global-data');
 
-// 带有 API 选项的桥接
+// 带有 API 选项的Bridge
 const bridge = createBridge()({
   myAPI: { isMulti: true } // 允许多个实例
 });
@@ -275,12 +277,12 @@ function NotificationConsumer() {
 
 ### 工具钩子
 
-以编程方式访问桥接功能：
+以编程方式访问Bridge功能：
 
 ```jsx
 function MyComponent() {
   const {
-    getAPI,
+    getBridgeAPI,
     getBoundaryPayload,
     getUpperAPI,
     getUpperBoundaryPayload,
@@ -288,7 +290,7 @@ function MyComponent() {
   } = bridge.useTools();
   
   const handleClick = () => {
-    const api = getAPI('myAPI');
+    const api = getBridgeAPI('myAPI');
     const payload = getBoundaryPayload();
     // 不使用钩子来使用 API
   };
@@ -362,7 +364,7 @@ function AnyComponent() {
 }
 ```
 
-### 主题提供者
+### 主题更改
 
 ```jsx
 const themeBridge = createBridge();
@@ -390,7 +392,7 @@ function ThemeButton() {
 
 ## 最佳实践
 
-1. **在模块级别创建桥接** - 不要在组件内部重新创建桥接
+1. **在模块级别创建Bridge** - 不要在组件内部重新创建Bridge
 2. **使用 TypeScript** - 定义你的 API 接口以获得更好的开发体验
 3. **处理未定义的 API** - 使用前始终检查 `apiRef.current`
 4. **使用有意义的名称** - API 名称应该描述其用途
@@ -415,7 +417,7 @@ function ThemeButton() {
 
 ## API 参考
 
-### 桥接方法
+### Bridge方法
 - `useRegister(name, factory, deps)` - 注册 API
 - `useAPI(name, options?)` - 访问 API
 - `useUpperAPI(name, options?)` - 访问父边界 API
@@ -423,7 +425,7 @@ function ThemeButton() {
 - `useUpperBoundaryPayload(options?)` - 获取父边界载荷
 - `useTools()` - 获取编程访问方法
 - `useContextValue(payload?)` - 为边界创建上下文值
-- `getAPI(name)` - 全局 API 访问（在组件外部）
+- `getBridgeAPI(name)` - 全局 API 访问（在组件外部）
 - `getAPIAsync(name, options?)` - 异步 API 访问
 
 ### 组件

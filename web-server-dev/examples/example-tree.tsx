@@ -9,13 +9,14 @@ import {
     useRef,
     useState
 } from "react";
-import createBridge from "../../dist/bridge";
+import {createBridge, getBridgeAPI, createBoundary, getBridgeAPIAsync, useAPI, useRegister, useTools, useBoundaryPayload, useBoundaryContext, useBoundaryRef, useUpperAPI, useUpperBoundaryPayload} from "../../dist/lib/index";
+
 
 
 
 
 export default function ExampleTree() {
-    const rootNodeAPI = TreeBridge.useAPI('node');
+    const rootNodeAPI = useAPI(TreeBridge, 'node');
     const [logContent, setLogContent] = useState('');
     return <div style={{width: 500, background: 'white', height: 'fit-content', padding: '20px', outline: '1px solid'}}>
         <TreeNode name={'Root'}>
@@ -67,7 +68,7 @@ function  TreeNode(props: PropsWithChildren<{name: ReactNode}>){
     const contentNodeRef = useRef<HTMLDivElement>(null);
     const checkboxRef = useRef<HTMLInputElement>(null);
 
-    const parentNodeAPI = TreeBridge.useAPI('parent');
+    const parentNodeAPI = useAPI(TreeBridge, 'parent');
 
 
     useLayoutEffect(() => {
@@ -98,10 +99,10 @@ function  TreeNode(props: PropsWithChildren<{name: ReactNode}>){
         parentNodeAPI.current?.updateHeight((_lh) => _lh + change);
     }, []);
 
-    const contextValue = TreeBridge.useContextValue();
+    const contextValue = useBoundaryContext(TreeBridge);
     const leavesRef = useRef<RefObject<Tree>[]>([]);
 
-    const leafAPIList = TreeBridge.useAPI('node', {
+    const leafAPIList = useAPI(TreeBridge, 'node', {
         onInit: (api, total) => {
             leavesRef.current = total
         },
@@ -151,8 +152,8 @@ function  TreeNode(props: PropsWithChildren<{name: ReactNode}>){
 
     const deps = [collapsed, checkState, updateHeight, props.name];
 
-    TreeBridge.useRegister('parent', () => api, deps, {contextValue});
-    TreeBridge.useRegister('node', () => api, deps);
+    useRegister(TreeBridge,'parent', () => api, deps, {contextValue});
+    useRegister(TreeBridge,'node', () => api, deps);
 
     useEffect(() => {
         const checkboxNode = checkboxRef.current;
@@ -169,7 +170,7 @@ function  TreeNode(props: PropsWithChildren<{name: ReactNode}>){
     }, [checkState]);
 
 
-    return <TreeBridge.Boundary payload={props.name} contextValue={contextValue}>
+    return <TreeBoundary payload={props.name} contextValue={contextValue}>
         <div style={{display: 'flow-root'}}>
             <div style={{border: '1px solid #eee', outline: 'none', lineHeight: 2, display: 'block'}}>
                 <label>
@@ -191,11 +192,11 @@ function  TreeNode(props: PropsWithChildren<{name: ReactNode}>){
                 }
             </div>
         </div>
-    </TreeBridge.Boundary>;
+    </TreeBoundary>;
 }
 
 function CollapseRootNode() {
-    const rootAPI = TreeBridge.useUpperAPI('parent', {
+    const rootAPI = useUpperAPI(TreeBridge, 'parent', {
         shouldForwardYield: (contextValue) => {
             return contextValue && contextValue.payload === 'Root';
         }
@@ -209,7 +210,7 @@ function CollapseRootNode() {
 }
 
 function ToggleSub2Node() {
-    const rootAPI = TreeBridge.useUpperAPI('parent', {
+    const rootAPI = useUpperAPI(TreeBridge, 'parent', {
         shouldForwardYield: (contextValue) => {
             return contextValue && contextValue.payload === 'Root';
         }
@@ -240,3 +241,5 @@ interface Tree {
         updateCheckStatus():void;
         updateHeight: UpdateHeight;
 }
+
+const TreeBoundary = createBoundary(TreeBridge);

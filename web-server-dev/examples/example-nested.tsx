@@ -1,6 +1,8 @@
-import createBridge from "../../dist/bridge";
+import {createBridge, getBridgeAPI, createBoundary, getBridgeAPIAsync, useAPI, useRegister, useTools, useBoundaryPayload, useBoundaryContext, useBoundaryRef, useUpperAPI, useUpperBoundaryPayload} from "../../dist/lib/index";
+
 import {useState} from "react";
-import {BoundaryContextValue} from "../../src/types";
+
+import {BoundaryContextValue} from "../../src/types/boundary";
 
 
 export default function ExampleNested() {
@@ -8,7 +10,7 @@ export default function ExampleNested() {
     const [mountD, setMountD] = useState(false);
     const [showCount, setShowCount] = useState(0)
 
-    ShowOffBridge.useRegister('show', () => {
+    useRegister(ShowOffBridge, 'show', () => {
         return () => {
             console.log('root show');
             setShowCount(showCount + 1);
@@ -16,8 +18,8 @@ export default function ExampleNested() {
         }
     }, [showCount]);
 
-    const showContextValue = ShowOffBridge.useContextValue("otto");
-    const shoutContextValue = ShoutAtBridge.useContextValue();
+    const showContextValue = useBoundaryContext(ShowOffBridge,"otto");
+    const shoutContextValue = useBoundaryContext(ShoutAtBridge);
 
     return <>
         <div>
@@ -30,39 +32,40 @@ export default function ExampleNested() {
         <AComponent></AComponent>
         {
             mountB &&
-            <ShowOffBridge.Boundary payload={'B upper payload'}>
+            <ShowOffBoundary payload={'B upper payload'}>
                 <BComponent contextValue={shoutContextValue}></BComponent>
-            </ShowOffBridge.Boundary>
+            </ShowOffBoundary>
         }
 
-        <ShoutAtBridge.Boundary contextValue={shoutContextValue}>
-            <ShowOffBridge.Boundary payload={"C upper payload"}>
+        <ShoutAtBoundary contextValue={shoutContextValue}>
+            <ShowOffBoundary payload={"C upper payload"}>
                 <CComponent id={`nc`} expected={"will show root"}></CComponent>
-            </ShowOffBridge.Boundary>
+            </ShowOffBoundary>
 
             {
                 mountD &&
-                <ShowOffBridge.Boundary contextValue={showContextValue}>
-                    <ShowOffBridge.Boundary contextValue={showContextValue}>
+                <ShowOffBoundary contextValue={showContextValue}>
+                    <ShowOffBoundary contextValue={showContextValue}>
                         <DComponent expected={``}/>
-                    </ShowOffBridge.Boundary>
-                </ShowOffBridge.Boundary>
+                    </ShowOffBoundary>
+                </ShowOffBoundary>
             }
 
-            <ShowOffBridge.Boundary contextValue={showContextValue}>
+            <ShowOffBoundary contextValue={showContextValue}>
                 <EComponent expected={``}/>
-            </ShowOffBridge.Boundary>
-        </ShoutAtBridge.Boundary>
+            </ShowOffBoundary>
+        </ShoutAtBoundary>
 
 
     </>;
 }
 
 
+
 function AComponent() {
     const [shoutAvailableCount, setShoutAvailableCount] = useState(0)
 
-    const shoutAPIList = ShoutAtBridge.useAPI('shout', {
+    const shoutAPIList = useAPI(ShoutAtBridge, 'shout', {
         onInit(api, total) {
             if(!api) {
                 setShoutAvailableCount((p) => p + total.length);
@@ -86,9 +89,9 @@ function AComponent() {
 function BComponent(props: {contextValue: BoundaryContextValue<ShoutAtAPI, string, {shout: {isMulti: true} }>}) {
     const [shoutCount, setShoutCount] = useState(0);
     const [showCount, setShowCount] = useState(0);
-    const contextValue = ShowOffBridge.useContextValue("B boundary payload");
+    const contextValue = useBoundaryContext(ShowOffBridge, "B boundary payload");
     console.log("=>(example-nested.tsx:91) shoutCount", shoutCount);
-    ShoutAtBridge.useRegister('shout', () => {
+    useRegister(ShoutAtBridge, 'shout', () => {
         return () => {
             console.log("=>(example-nested.tsx:94) B shout", );
             setShoutCount(shoutCount + 1);
@@ -97,14 +100,14 @@ function BComponent(props: {contextValue: BoundaryContextValue<ShoutAtAPI, strin
         }
     }, [shoutCount], {contextValue: props.contextValue});
 
-    ShowOffBridge.useRegister('show', () => {
+    useRegister(ShowOffBridge, 'show', () => {
         return () => {
             setShowCount(showCount + 1);
             return `b-show`
         }
     }, [showCount], {contextValue});
 
-    return <ShowOffBridge.Boundary contextValue={contextValue}>
+    return <ShowOffBoundary contextValue={contextValue}>
         <div data-testid={`b-comp`} style={{border: '1px solid', paddingInline: 8}}>
             <h2>BComponent</h2>
             <CComponent id={`bc`} expected={"will show root"}></CComponent>
@@ -114,12 +117,12 @@ function BComponent(props: {contextValue: BoundaryContextValue<ShoutAtAPI, strin
         </div>
 
 
-    </ShowOffBridge.Boundary>
+    </ShowOffBoundary>
 }
 
 function CComponent(props: { expected: string, id: string }) {
     const [showContent, setShowContent] = useState('')
-    const showAPI = ShowOffBridge.useUpperAPI('show', {
+    const showAPI = useUpperAPI(ShowOffBridge, 'show', {
         onInit: (api) => {
             console.log("=>(example-nested.tsx:48) C", api);
         },
@@ -128,8 +131,8 @@ function CComponent(props: { expected: string, id: string }) {
         }
     });
 
-    const upperPayload = ShowOffBridge.useUpperBoundaryPayload();
-    const payload = ShowOffBridge.useBoundaryPayload();
+    const upperPayload = useUpperBoundaryPayload(ShowOffBridge);
+    const payload = useBoundaryPayload(ShowOffBridge);
     const [logContent, setLogContent] = useState('')
 
     return <div>
@@ -154,14 +157,14 @@ function CComponent(props: { expected: string, id: string }) {
 function DComponent(props: { expected: string }) {
     const [shoutCount, setShoutCount] = useState(0);
     const [showCount, setShowCount] = useState(0)
-    ShoutAtBridge.useRegister('shout', () => {
+    useRegister(ShoutAtBridge, 'shout', () => {
         return () => {
             setShoutCount(p => p + 1)
             return 'D: Let me first!'
         }
     });
 
-    ShowOffBridge.useRegister('show',() => () => {
+    useRegister(ShowOffBridge, 'show',() => () => {
         setShowCount(p => p + 1);
         return 'hello, I\'m D'
     });
@@ -175,7 +178,7 @@ function EComponent(props: { expected: string }) {
     const [logContent, setLogContent] = useState('');
     const [shoutAvailableCount, setShoutAvailableCount] = useState(0);
     const [shoutCount, setShoutCount] = useState(0)
-    const showAPI = ShowOffBridge.useAPI('show', {
+    const showAPI = useAPI(ShowOffBridge,'show', {
         onInit(api) {
             setLogContent('showing')
             return () => {
@@ -184,14 +187,14 @@ function EComponent(props: { expected: string }) {
         }
     });
 
-    ShoutAtBridge.useRegister('shout', () => {
+    useRegister(ShoutAtBridge, 'shout', () => {
         return () => {
             setShoutCount(shoutCount + 1);
             return 'E: Shut up!'
         }
     }, [shoutCount]);
 
-    const shoutAtApi = ShoutAtBridge.useAPI('shout', {
+    const shoutAtApi = useAPI(ShoutAtBridge, 'shout', {
         onInit(api, total) {
             if(!api) {
                 setShoutAvailableCount((p) => p + total.length);
@@ -243,3 +246,8 @@ type ShoutAtAPI = {
 const ShoutAtBridge = createBridge<
     ShoutAtAPI
 >()({shout: {isMulti: true}});
+
+
+const ShowOffBoundary = createBoundary(ShowOffBridge);
+
+const ShoutAtBoundary = createBoundary(ShoutAtBridge);

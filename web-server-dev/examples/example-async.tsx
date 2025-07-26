@@ -1,18 +1,18 @@
 
-import createBridge from "../../dist/bridge";
+import {createBridge, getBridgeAPI, createBoundary, getBridgeAPIAsync, useAPI, useRegister, useTools, useBoundaryPayload, useBoundaryContext, useBoundaryRef, useUpperAPI, useUpperBoundaryPayload} from "../../dist/lib/index";
 import {useState} from "react";
 
 export default function ExampleAsync() {
 
 
-    AsyncBridge.useRegister('getName', () => {
+    useRegister(AsyncBridge, 'getName', () => {
         return () => 'DeliangShu ';
     })
 
     return <div>
         <p>DeliangShu(Global)</p>
         <button onClick={() => {
-            AsyncBridge.getAPIAsync('getName').then((api => {
+            getBridgeAPIAsync(AsyncBridge, 'getName').then((api => {
                     console.log('name:',api.current!());
                 })
             );
@@ -33,20 +33,19 @@ const AsyncBridge = createBridge<
     {
         getName: () => string;
     }
->();
+>(10);
 
 function Joe () {
 
-    const cv = AsyncBridge.useContextValue();
-
-    AsyncBridge.useRegister('getName', () => {
+    const cv = useBoundaryContext(AsyncBridge);
+    useRegister(AsyncBridge, 'getName', () => {
         return () => 'Joe';
     }, [], {contextValue: cv});
 
     return <div>
         <p>Joe</p>
         <button onClick={() => {
-            AsyncBridge.getAPIAsync('getName', {contextValue: cv}).then(api => {
+            getBridgeAPIAsync(AsyncBridge,'getName', {contextValue: cv}).then(api => {
                 console.log('name:',api.current!());
             })
         }}
@@ -57,23 +56,25 @@ function Joe () {
     </div>
 }
 
+const AsyncBoundary = createBoundary(AsyncBridge);
+
 function MikeWrapper() {
 
     const [token, setToken] = useState(1);
 
-    return <AsyncBridge.Boundary>
+    return <AsyncBoundary>
         <p>Mike Wrapper</p>
         <Mike key={token} token={token} onRenew={() => setToken(token + 1)}></Mike>
-    </AsyncBridge.Boundary>
+    </AsyncBoundary>
 }
 
 function Mike(props: { onRenew: () => void, token: number }) {
 
-    AsyncBridge.useRegister('getName', () => {
+    useRegister(AsyncBridge, 'getName', () => {
         return () => 'Mike';
     });
 
-    const {getAPIAsync} = AsyncBridge.useTools();
+    const {getAPIAsync} = useTools(AsyncBridge);
 
     return <div>
         <button onClick={() => {

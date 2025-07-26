@@ -1,4 +1,5 @@
-import createBridge from "../../dist/bridge";
+import {createBridge, getBridgeAPI, createBoundary, getBridgeAPIAsync, useAPI, useRegister, useTools, useBoundaryPayload, useBoundaryContext, useBoundaryRef, useUpperAPI, useUpperBoundaryPayload} from "../../dist/lib/index";
+
 import {useEffect, useId, useRef, useState} from "react";
 
 
@@ -6,11 +7,11 @@ export const id1 = `log-panel-outer__`;
 
 export default function ExampleMultiple() {
     const id = useId();
-    const {getAPI} = EMBridge.useTools();
+    const {getAPI} = useTools(EMBridge);
     const [BIds, setBIds] = useState(['01', '02']);
     const [newId, setNewId] = useState('');
     const [thirdBIntroduced, setThirdBIntroduced] = useState(false);
-    const payloadId = EMBridge.useBoundaryPayload();
+    const payloadId = useBoundaryPayload(EMBridge);
 
     const [mountedBList, setMountedBList] = useState<
         string[]
@@ -19,15 +20,15 @@ export default function ExampleMultiple() {
      * the register of 'B' is not limited within 'B' component,
      * technically it can be register anywhere in component tree.
      */
-    EMBridge.useRegister('B', () => ({
+    useRegister(EMBridge, 'B', () => ({
         id: '03',
         introduce: () => {
             setThirdBIntroduced(true);
             console.log('03 B')
         }
     }), []);
-    const BApiList = EMBridge.useAPI('B');
-    EMBridge.useAPI('B', {
+    const BApiList = useAPI(EMBridge,'B');
+    useAPI(EMBridge, 'B', {
         onInit: (api, total) => {
             console.log("(root) api", api, total.length, total);
 
@@ -121,13 +122,13 @@ export default function ExampleMultiple() {
 }
 
 function AComponent(){
-    const {getAPI, getBoundaryPayload} = EMBridge.useTools();
+    const {getAPI, getBoundaryPayload} = useTools(EMBridge);
     const [prefix, setPrefix] = useState('foo');
     const payloadId = getBoundaryPayload();
     const [mountedBList, setMountedBList] = useState<string[]>([])
     const [sangLabel, setSangLabel] = useState('');
 
-    EMBridge.useAPI('B', {
+    useAPI(EMBridge, 'B', {
         onInit: (api, total) => {
             if(!api) {
                 // When this useAPI hook first executed, it will call this function with other already registered 'B' api,
@@ -163,14 +164,14 @@ function AComponent(){
         }
     });
 
-    EMBridge.useRegister('A', () => ({
+    useRegister(EMBridge, 'A', () => ({
         sing(){
             setSangLabel(`${payloadId}-${prefix}-A-sang`);
             console.log("A: sing");
         }
     }), [payloadId, prefix]);
 
-    const ownAPI = EMBridge.useAPI('A')
+    const ownAPI = useAPI(EMBridge, 'A')
 
     return <div style={{outline: '1px solid', padding: 10}}>
         AComponent
@@ -224,11 +225,11 @@ interface BComponentProps {
 function BComponent(props: BComponentProps){
     const {id} = props;
     const [otherDesc, setOtherDesc] = useState('thank you');
-    const payloadId = EMBridge.useBoundaryPayload();
+    const payloadId = useBoundaryPayload(EMBridge);
     const countRef = useRef(0);
     const [introducedText, setIntroducedText] = useState('');
 
-    EMBridge.useRegister('B', () => ({
+    useRegister(EMBridge, 'B', () => ({
         id,
         introduce(){
             countRef.current++;

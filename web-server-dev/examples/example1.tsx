@@ -1,10 +1,10 @@
-import createBridge from "../../dist/bridge";
+import { createBridge, useAPI, useRegister, useTools, getBridgeAPI } from "../../dist/es/index.js";
 
 import {PropsWithChildren, useCallback, useEffect, useRef, useState} from "react";
 
 export default function Example1() {
-    const CApi = ExaBridge.useAPI('C');
-    const BApi = ExaBridge.useAPI('B', {
+    const CApi = useAPI(ExaBridge, 'C');
+    const BApi = useAPI(ExaBridge, 'B', {
         onInit: (api) => {
             console.log("=>(example1.tsx:9) invokeA by BApi", api.current?.invokeA('Root'));
         }
@@ -57,7 +57,7 @@ export default function Example1() {
 
         <div>
             <button onClick={() => {
-                const AApi = ExaBridge.getAPI('A');
+                const AApi = getBridgeAPI(ExaBridge, 'A');
                 AApi.current?.bark('outer')
             }}>
                 callA without hook
@@ -70,7 +70,7 @@ export default function Example1() {
 function AComponent() {
     const timerRef = useRef<any>();
     const [content, setContent] = useState('');
-    ExaBridge.useRegister('A', () => ({
+    useRegister(ExaBridge, 'A', () => ({
         bark(form: string) {
             let voice = `from:${form}`;
             setContent(voice);
@@ -88,17 +88,17 @@ function AComponent() {
 }
 
 function BComponent() {
-    const AApi = ExaBridge.useAPI('A');
+    const AApi = useAPI(ExaBridge, 'A');
     const invokeA = useCallback((form: string) => {
         console.log("B: Hi, A, can you bark?" );
         AApi.current?.bark(form);
 
     }, []);
 
-    ExaBridge.useRegister('B', () => ({
+    useRegister(ExaBridge, 'B', () => ({
         invokeA,
     }), []);
-    const {getAPI} = ExaBridge.useTools();
+    const {getAPI} = useTools(ExaBridge);
 
     return <div style={{background: 'lightcyan'}}>
         BComponent
@@ -114,7 +114,7 @@ function CComponent() {
     const [unit, setUnit] = useState<'px' | 'rem'>('px');
     const [position, setPosition] = useState(0);
 
-    ExaBridge.useRegister('C', () => ({
+    useRegister(ExaBridge, 'C', () => ({
         move(delta){
             console.log(`C: Okay, move ${delta}${unit}`);
             setPosition(position + delta);

@@ -1,8 +1,9 @@
 # react-api-bridge
-
 > **Language**: [English](#) | [简体中文](./README.zh-CN.md)
 
 A React library for sharing imperative APIs between components without prop drilling. Register APIs in one component and access them anywhere in your component tree.
+
+![logo](https://github.com/Ryo98-SL/react-awesome-api-bridge/react-api-bridge-logo.png)
 
 ## Why Use This?
 
@@ -280,7 +281,7 @@ Access bridge functionality programmatically:
 ```jsx
 function MyComponent() {
     const {
-        getAPI,
+        getBridgeAPI,
         getBoundaryPayload,
         getUpperAPI,
         getUpperBoundaryPayload,
@@ -288,9 +289,9 @@ function MyComponent() {
     } = bridge.useTools();
 
     const handleClick = () => {
-        const api = getAPI('myAPI');
+        const api = getBridgeAPI('myAPI');
         const payload = getBoundaryPayload();
-        // Use APIs without hooks
+        // Use APIs without features
     };
 }
 ```
@@ -423,7 +424,7 @@ function ThemeButton() {
 - `useUpperBoundaryPayload(options?)` - Get parent boundary payload
 - `useTools()` - Get programmatic access methods
 - `useContextValue(payload?)` - Create context value for boundaries
-- `getAPI(name)` - Global API access (outside components)
+- `getBridgeAPI(name)` - Global API access (outside components)
 - `getAPIAsync(name, options?)` - Async API access
 
 ### Components
