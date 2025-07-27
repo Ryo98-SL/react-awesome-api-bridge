@@ -1,6 +1,5 @@
-import {useFinalContextValue} from "../../core/useFinalContextValue";
+import {useFinalContextValue, getUpperContextValue} from "../../core";
 import {useMemo} from "react";
-import {getUpperContextValue} from "../../core/getUpperContextValue";
 import {BridgeAPIOptions, UpperOptions} from "../../types/options";
 import {APIParams} from "../../types/api";
 import {ReactAPIBridge} from "../../types/bridge";

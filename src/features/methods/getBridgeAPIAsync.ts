@@ -1,5 +1,4 @@
-import {getApiDesc} from "../../core/getApiDesc";
-import {getResolverOrCreateWhenMissing} from "../../core/getResolverOrCreateWhenMissing";
+import {getApiDesc, getResolverOrCreateWhenMissing} from "../../core";
 import {BridgeAPIOptions, GetAPIAsyncOptions} from "../../types/options";
 import {APIParams} from "../../types/api";
 import {ReactAPIBridge} from "../../types/bridge";

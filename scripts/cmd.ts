@@ -50,6 +50,7 @@ const args = yargs(hideBin(process.argv))
 
         await buildDone;
         if(serve) {
+            console.log('server start running');
             const serveProcess = exec(`npx tsx ./serve.ts --env ${env}`, {
                 cwd: SCRIPTS_PATH,
             });

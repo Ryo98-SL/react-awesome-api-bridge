@@ -1,9 +1,6 @@
 import {DependencyList, RefObject, useEffect, useImperativeHandle, useMemo} from "react";
-import {getIsMulti} from "../../core/getIsMulti";
-import {useFinalContextValue} from "../../core/useFinalContextValue";
-import {getApiDesc} from "../../core/getApiDesc";
+import {getIsMulti, useFinalContextValue, getApiDesc, getResolverOrCreateWhenMissing} from "../../core";
 import {useUniqueElementRef} from "../../utils/useUniqueElementRef";
-import {getResolverOrCreateWhenMissing} from "../../core/getResolverOrCreateWhenMissing";
 import {appendToMappedValue} from "../../utils/appendToMappedValue";
 import {tryInvoke} from "../../utils/tryInvoke";
 import {OnInit, OnMultiInit} from "../../types/init";

@@ -1,6 +1,4 @@
-import {useFinalContextValue} from "../../core/useFinalContextValue";
-import {getApiDesc} from "../../core/getApiDesc";
-import {useInitEffect} from "../../core/useInitEffect";
+import {useFinalContextValue, getApiDesc, useInitEffect} from "../../core";
 import {BridgeAPIOptions, GetAPIOptions} from "../../types/options";
 import {APIParams, ConditionByIsMulti} from "../../types/api";
 import {ReactAPIBridge} from "../../types/bridge";
@@ -14,14 +12,3 @@ export function useAPI<A extends APIParams, N extends keyof A, O extends BridgeA
 
     return apiNList;
 }
-
-
-type AP =     {
-    A: {
-        sing():void;
-    },
-    B: {
-        id: string;
-        introduce(): void;
-    }
-};

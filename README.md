@@ -8,7 +8,7 @@ A React library for sharing imperative APIs between components without prop dril
 ## Why Use This?
 
 - **No Prop Drilling**: Access component APIs from anywhere without passing refs through props
-- **Better Performance**: Update APIs won't result in redundant re-render
+- **Better Performance**: Update APIs won't result in redundant re-render, expect payload
 - **Flexible Boundaries**: Control API scope with boundaries
 - **Type Safe**: Full TypeScript support with strongly typed APIs
 - **Multi-Instance Support**: Register multiple instances of the same API
@@ -24,18 +24,30 @@ npm install @ryo-98/react-api-bridge
 
 ### Basic Example
 
-```jsx
-import createBridge from '@ryo-98/react-api-bridge';
+```tsx
+import { createBridge, useAPI, useRegister, getBridgeAPI } from '@ryo-98/react-api-bridge';
 
-// Create a bridge registry
-const bridge = createBridge();
+// Define your API types
+interface MyAPIs {
+    counter: {
+        getCount: () => number;
+        increment: () => void;
+    };
+    user: {
+        getName: () => string;
+        setName: (name: string) => void;
+    };
+}
+
+// Create a bridge
+const bridge = createBridge<MyAPIs>();
 
 // Component that registers an API
 function Counter() {
     const [count, setCount] = useState(0);
 
     // Register the API
-    bridge.useRegister('counter', () => ({
+    useRegister(bridge, 'counter', () => ({
         getCount: () => count,
         increment: () => setCount(c => c + 1)
     }), [count]);
@@ -45,7 +57,7 @@ function Counter() {
 
 // Component that uses the API (can be anywhere in the tree!)
 function CounterDisplay() {
-    const counterAPI = bridge.useAPI('counter');
+    const counterAPI = useAPI(bridge, 'counter');
 
     const showCount = () => {
         if (counterAPI.current) {
@@ -56,11 +68,24 @@ function CounterDisplay() {
     return <button onClick={showCount}>Show Count</button>;
 }
 
+// Access API outside of components
+function GlobalAccess() {
+    const handleClick = () => {
+        const counterAPI = getBridgeAPI(bridge, 'counter');
+        if (counterAPI.current) {
+            counterAPI.current.increment();
+        }
+    };
+
+    return <button onClick={handleClick}>Increment from outside</button>;
+}
+
 function App() {
     return (
         <div>
             <Counter />
             <CounterDisplay />
+            <GlobalAccess />
         </div>
     );
 }
@@ -70,16 +95,21 @@ function App() {
 
 ### 1. Bridge Creation
 
-```jsx
-// Basic bridge
-const bridge = createBridge();
+```tsx
+// Basic bridge with TypeScript
+interface MyAPIs {
+    counter: { increment: () => void };
+    user: { getName: () => string };
+}
+
+const bridge = createBridge<MyAPIs>();
 
 // Bridge with global payload
-const bridge = createBridge('global-data');
+const bridge = createBridge<MyAPIs, { theme: string }>({ theme: 'dark' });
 
 // Bridge with API options
-const bridge = createBridge()({
-    myAPI: { isMulti: true } // Allow multiple instances
+const bridge = createBridge<MyAPIs>()({
+    counter: { isMulti: true } // Allow multiple instances
 });
 ```
 
@@ -87,13 +117,13 @@ const bridge = createBridge()({
 
 Use `useRegister` to make component methods available to other components:
 
-```jsx
-function MyComponent({ name }) {
+```tsx
+function MyComponent({ name }: { name: string }) {
     const [value, setValue] = useState('');
 
-    bridge.useRegister('myAPI', () => ({
+    useRegister(bridge, 'myAPI', () => ({
         getValue: () => value,
-        setValue: (newValue) => setValue(newValue),
+        setValue: (newValue: string) => setValue(newValue),
         getName: () => name
     }), [value, name]); // Dependencies like useEffect
 
@@ -105,12 +135,12 @@ function MyComponent({ name }) {
 
 Access registered APIs with `useAPI`:
 
-```jsx
+```tsx
 function ConsumerComponent() {
-    const myAPI = bridge.useAPI('myAPI', {
+    const myAPI = useAPI(bridge, 'myAPI', {
         // Optional: callback when API first becomes available
         onInit: (apiRef) => {
-            console.log('API ready:', apiRef.current.getValue());
+            console.log('API ready:', apiRef.current?.getValue());
 
             // Return cleanup function if needed
             return () => console.log('Cleaning up');
@@ -133,16 +163,20 @@ Boundaries control which components can access which APIs. Think of them as scop
 
 ### Basic Boundary Usage
 
-```jsx
+```tsx
+import { createBoundary } from '@ryo-98/react-api-bridge';
+
+const Boundary = createBoundary(bridge);
+
 function App() {
     return (
         <div>
             <MyComponent name="global" /> {/* Global scope */}
 
-            <bridge.Boundary>
+            <Boundary>
                 <MyComponent name="scoped" /> {/* Boundary scope */}
                 <ConsumerComponent /> {/* Can only see "scoped" API */}
-            </bridge.Boundary>
+            </Boundary>
 
             <ConsumerComponent /> {/* Can only see "global" API */}
         </div>
@@ -154,18 +188,18 @@ function App() {
 
 Pass data to all components within a boundary:
 
-```jsx
+```tsx
 function App() {
     return (
         // You can wrap this object with useMemo to prevent redundant re-render   
-        <bridge.Boundary payload={{ theme: 'dark', user: 'john' }}>
+        <Boundary payload={{ theme: 'dark', user: 'john' }}>
             <MyComponent />
-        </bridge.Boundary>
+        </Boundary>
     );
 }
 
 function MyComponent() {
-    const payload = bridge.useBoundaryPayload();
+    const payload = useBoundaryPayload(bridge);
     console.log(payload); // { theme: 'dark', user: 'john' }
 }
 ```
@@ -174,20 +208,20 @@ function MyComponent() {
 
 Share context between boundaries:
 
-```jsx
+```tsx
 function App() {
-    const contextValue = bridge.useContextValue({ shared: 'data' });
+    const contextValue = useBoundaryContext(bridge, { shared: 'data' });
 
     return (
         <div>
-            <bridge.Boundary contextValue={contextValue}>
+            <Boundary contextValue={contextValue}>
                 <ComponentA />
-            </bridge.Boundary>
+            </Boundary>
 
             {/* This boundary shares the same context */}
-            <bridge.Boundary contextValue={contextValue}>
+            <Boundary contextValue={contextValue}>
                 <ComponentB /> {/* Can see ComponentA's APIs */}
-            </bridge.Boundary>
+            </Boundary>
         </div>
     );
 }
@@ -199,12 +233,12 @@ function App() {
 
 Use `useUpperAPI` to access APIs from parent boundaries:
 
-```jsx
+```tsx
 function NestedComponent() {
-    const currentAPI = bridge.useAPI('myAPI');      // Current boundary
-    const parentAPI = bridge.useUpperAPI('myAPI'); // Parent boundary
+    const currentAPI = useAPI(bridge, 'myAPI');      // Current boundary
+    const parentAPI = useUpperAPI(bridge, 'myAPI'); // Parent boundary
 
-    const rootAPI = bridge.useUpperAPI('myAPI', {
+    const rootAPI = useUpperAPI(bridge, 'myAPI', {
         // Find specific boundary by condition
         shouldForwardYield: (boundary) => !boundary.parent // Root boundary
     });
@@ -215,16 +249,18 @@ function NestedComponent() {
 
 Wait for APIs to be registered:
 
-```jsx
+```tsx
+import { getBridgeAPIAsync, useTools } from '@ryo-98/react-api-bridge';
+
 // Outside components
-bridge.getAPIAsync('myAPI')
+getBridgeAPIAsync(bridge, 'myAPI')
     .then(apiRef => {
-        console.log('API ready:', apiRef.current.getValue());
+        console.log('API ready:', apiRef.current?.getValue());
     });
 
 // Inside components
 function MyComponent() {
-    const { getAPIAsync } = bridge.useTools();
+    const { getAPIAsync } = useTools(bridge);
 
     useEffect(() => {
         getAPIAsync('myAPI').then(apiRef => {
@@ -238,39 +274,46 @@ function MyComponent() {
 
 Allow multiple components to register the same API name:
 
-```jsx
-const bridge = createBridge()({
+```tsx
+const bridge = createBridge<{
+    notifications: {
+        id: string;
+        showNotification: (msg: string) => void;
+    };
+}>()({
     notifications: { isMulti: true }
 });
 
-function NotificationProvider({ type, id }) {
-    bridge.useRegister('notifications', () => ({
+function NotificationProvider({ type, id }: { type: string; id: string }) {
+    useRegister(bridge, 'notifications', () => ({
         id,
-        showNotification: (msg) => console.log(`${type}: ${msg}`)
-    }));
+        showNotification: (msg: string) => console.log(`${type}: ${msg}`)
+    }), [type, id]);
 }
 
 function App() {
     return (
         <div>
-            <NotificationProvider id={'foo'} type="success" />
-            <NotificationProvider id={'bar'} type="error" />
-            <NotificationConsumer id={'baz'} />
+            <NotificationProvider id="foo" type="success" />
+            <NotificationProvider id="bar" type="error" />
+            <NotificationConsumer />
         </div>
     );
 }
 
 function NotificationConsumer() {
-    const notificationAPIs = bridge.useAPI('notifications'); // Array of APIs
+    const notificationAPIs = useAPI(bridge, 'notifications'); // Array of APIs
 
     const showAll = () => {
         notificationAPIs.forEach(api => {
-            if(api.current.id === 'foo') {
-                console.log('foo!')
+            if (api.current?.id === 'foo') {
+                console.log('foo!');
             }
-            api.current.showNotification('Hello!');
+            api.current?.showNotification('Hello!');
         });
     };
+
+    return <button onClick={showAll}>Show All Notifications</button>;
 }
 ```
 
@@ -278,20 +321,20 @@ function NotificationConsumer() {
 
 Access bridge functionality programmatically:
 
-```jsx
+```tsx
 function MyComponent() {
     const {
-        getBridgeAPI,
+        getAPI,
         getBoundaryPayload,
         getUpperAPI,
         getUpperBoundaryPayload,
         getAPIAsync
-    } = bridge.useTools();
+    } = useTools(bridge);
 
     const handleClick = () => {
-        const api = getBridgeAPI('myAPI');
+        const api = getAPI('myAPI');
         const payload = getBoundaryPayload();
-        // Use APIs without features
+        // Use APIs without hooks
     };
 }
 ```
@@ -321,14 +364,14 @@ const bridge = createBridge<MyAPIs, PayloadType>({
 
 // Now everything is typed!
 function MyComponent() {
-    bridge.useRegister('counter', () => ({
+    useRegister(bridge, 'counter', () => ({
         getCount: () => 42,
         increment: () => console.log('increment')
         // TypeScript will enforce this matches the interface
-    }));
+    }), []);
 
-    const counterAPI = bridge.useAPI('counter'); // Fully typed
-    const payload = bridge.useBoundaryPayload(); // PayloadType
+    const counterAPI = useAPI(bridge, 'counter'); // Fully typed
+    const payload = useBoundaryPayload(bridge); // PayloadType
 }
 ```
 
@@ -336,50 +379,69 @@ function MyComponent() {
 
 ### Modal Manager
 
-```jsx
-const modalBridge = createBridge();
+```tsx
+const modalBridge = createBridge<{
+    modals: {
+        show: (content: string) => void;
+        hide: (id: number) => void;
+    };
+}>();
 
 function ModalManager() {
-    const [modals, setModals] = useState([]);
+    const [modals, setModals] = useState<Array<{ id: number; content: string }>>([]);
 
-    modalBridge.useRegister('modals', () => ({
-        show: (content) => setModals(prev => [...prev, { id: Date.now(), content }]),
-        hide: (id) => setModals(prev => prev.filter(m => m.id !== id))
+    useRegister(modalBridge, 'modals', () => ({
+        show: (content: string) => setModals(prev => [...prev, { id: Date.now(), content }]),
+        hide: (id: number) => setModals(prev => prev.filter(m => m.id !== id))
     }), []);
 
-    return modals.map(modal => (
-        <Modal key={modal.id} content={modal.content} />
-    ));
+    return (
+        <>
+            {modals.map(modal => (
+                <Modal key={modal.id} content={modal.content} />
+            ))}
+        </>
+    );
 }
 
 function AnyComponent() {
-    const modals = modalBridge.useAPI('modals');
+    const modals = useAPI(modalBridge, 'modals');
 
     const showModal = () => {
         if (modals.current) {
             modals.current.show('Hello from modal!');
         }
     };
+
+    return <button onClick={showModal}>Show Modal</button>;
 }
 ```
 
 ### Theme Provider
 
-```jsx
-const themeBridge = createBridge();
+```tsx
+const themeBridge = createBridge<{
+    theme: {
+        getCurrentTheme: () => string;
+        toggleTheme: () => void;
+        setTheme: (theme: string) => void;
+    };
+}>();
 
 function ThemeProvider() {
     const [theme, setTheme] = useState('light');
 
-    themeBridge.useRegister('theme', () => ({
+    useRegister(themeBridge, 'theme', () => ({
         getCurrentTheme: () => theme,
         toggleTheme: () => setTheme(t => t === 'light' ? 'dark' : 'light'),
         setTheme
     }), [theme]);
+
+    return null;
 }
 
 function ThemeButton() {
-    const themeAPI = themeBridge.useAPI('theme');
+    const themeAPI = useAPI(themeBridge, 'theme');
 
     return (
         <button onClick={() => themeAPI.current?.toggleTheme()}>
@@ -397,6 +459,7 @@ function ThemeButton() {
 4. **Use meaningful names** - API names should describe their purpose
 5. **Keep APIs focused** - Don't create overly complex API objects
 6. **Use onInit wisely** - Perfect for setting up event listeners or initial calls
+7. **Pass bridge instance as first parameter** - All hooks and methods expect the bridge as the first argument
 
 ## Troubleshooting
 
@@ -414,21 +477,30 @@ function ThemeButton() {
 - Ensure your API implementation matches the interface
 - Check that dependencies array includes all used variables
 
+**Q: Bridge parameter missing**
+- All hooks and methods require the bridge instance as the first parameter
+- Make sure you're passing the bridge correctly: `useAPI(bridge, 'apiName')`
+
 ## API Reference
 
-### Bridge Methods
-- `useRegister(name, factory, deps)` - Register an API
-- `useAPI(name, options?)` - Access an API
-- `useUpperAPI(name, options?)` - Access parent boundary API
-- `useBoundaryPayload(options?)` - Get boundary payload
-- `useUpperBoundaryPayload(options?)` - Get parent boundary payload
-- `useTools()` - Get programmatic access methods
-- `useContextValue(payload?)` - Create context value for boundaries
-- `getBridgeAPI(name)` - Global API access (outside components)
-- `getAPIAsync(name, options?)` - Async API access
+### Bridge Creation
+- `createBridge<APIs, PayloadType>(globalPayload?, options?)` - Create a new bridge instance
+
+### Hooks
+- `useRegister(bridge, name, factory, deps, options?)` - Register an API
+- `useAPI(bridge, name, options?)` - Access an API
+- `useUpperAPI(bridge, name, options?)` - Access parent boundary API
+- `useBoundaryPayload(bridge, options?)` - Get boundary payload
+- `useUpperBoundaryPayload(bridge, options?)` - Get parent boundary payload
+- `useBoundaryContext(bridge, payload?)` - Create context value for boundaries
+- `useTools(bridge)` - Get programmatic access methods
+
+### Methods
+- `getBridgeAPI(bridge, name, options?)` - Global API access (outside components)
+- `getBridgeAPIAsync(bridge, name, options?)` - Async API access
 
 ### Components
-- `<Boundary>` - Create API scope boundary
+- `createBoundary(bridge)` - Create boundary component factory
 
 ## License
 

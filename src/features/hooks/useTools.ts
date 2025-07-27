@@ -1,9 +1,5 @@
-import {useFinalContextValue} from "../../core/useFinalContextValue";
+import {useFinalContextValue, getApiDesc, getUpperApiDesc, getUpperContextValue, getResolverOrCreateWhenMissing} from "../../core";
 import {useCallback} from "react";
-import {getApiDesc} from "../../core/getApiDesc";
-import {getUpperApiDesc} from "../../core/getUpperApiDesc";
-import {getUpperContextValue} from "../../core/getUpperContextValue";
-import {getResolverOrCreateWhenMissing} from "../../core/getResolverOrCreateWhenMissing";
 import {
     BaseOptions,
     BridgeAPIOptions,

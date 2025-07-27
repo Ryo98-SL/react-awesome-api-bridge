@@ -1,5 +1,5 @@
 import React, {forwardRef, PropsWithChildren, useContext, useImperativeHandle, useMemo} from "react";
-import {getApiDesc} from "../../core/getApiDesc";
+import {getApiDesc} from "../../core";
 import {BoundaryAPI, BoundaryContextValue, BoundaryProps} from "../../types/boundary";
 import {BridgeAPIOptions} from "../../types/options";
 import {APIParams} from "../../types/api";

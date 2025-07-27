@@ -61,11 +61,11 @@ type EsBuildOptions = Parameters<typeof esbuild.build>[0];
 
         for (const dir of [CJsOutDir, ESOutDir]) {
             typeFiles.forEach(typeFilePath => {
-                const writePath = typeFilePath.replace(new RegExp(`^${escapeStringRegexp(SRC_PATH)}`), dir).replaceAll('/', path.sep);
+                const destPath = typeFilePath.replace(new RegExp(`^${escapeStringRegexp(SRC_PATH)}`), dir).replaceAll('/', path.sep);
 
                 fs.copy(
                     typeFilePath,
-                    writePath
+                    destPath
                 )
             });
         }

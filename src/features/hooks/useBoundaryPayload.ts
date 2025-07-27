@@ -1,4 +1,4 @@
-import {useFinalContextValue} from "../../core/useFinalContextValue";
+import {useFinalContextValue} from "../../core";
 import {BaseOptions, BridgeAPIOptions} from "../../types/options";
 import {APIParams} from "../../types/api";
 import {ReactAPIBridge} from "../../types/bridge";

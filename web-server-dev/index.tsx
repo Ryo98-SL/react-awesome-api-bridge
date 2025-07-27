@@ -7,6 +7,7 @@ import {Outlet, Route, Routes,} from "react-router";
 import {HashRouter, NavLink} from "react-router-dom";
 import ExampleNested from "./examples/example-nested";
 import ExampleAsync from "./examples/example-async";
+import ExampleGetApi from "./examples/example-getApi";
 
 const root = createRoot(document.getElementById('app')!);
 
@@ -22,6 +23,7 @@ root.render(
                             <Route path={'/exampleTree'} element={<ExampleTree/>}></Route>
                             <Route path={'/exampleNested'} element={<ExampleNested/>}></Route>
                             <Route path={'/exampleAsync'} element={<ExampleAsync/>}></Route>
+                            <Route path={'/exampleInit'} element={<ExampleGetApi/>}></Route>
                         </Route>
 
 
@@ -58,6 +60,8 @@ function Root() {
             <NavLink to={'/exampleNested'}>Nested</NavLink>
             &nbsp;
             <NavLink to={'/exampleAsync'}>Async</NavLink>
+
+            <NavLink to={'/exampleInit'}>Init</NavLink>
         </div>
 
         <div style={{
