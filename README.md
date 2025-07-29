@@ -8,7 +8,7 @@ A React library for sharing imperative APIs between components without prop dril
 ## Why Use This?
 
 - **No Prop Drilling**: Access component APIs from anywhere without passing refs through props
-- **Better Performance**: Update APIs won't result in redundant re-render, expect payload
+- **Better Performance**: Update APIs won't result in redundant re-render
 - **Flexible Boundaries**: Control API scope with boundaries
 - **Type Safe**: Full TypeScript support with strongly typed APIs
 - **Multi-Instance Support**: Register multiple instances of the same API
@@ -202,6 +202,9 @@ function MyComponent() {
     const payload = useBoundaryPayload(bridge);
     console.log(payload); // { theme: 'dark', user: 'john' }
 }
+
+// Or, you can specify the default payload when create bridges
+const bridge = createBridge({ theme: 'dark', user: 'global' })
 ```
 
 ### Connecting Boundaries
@@ -210,17 +213,23 @@ Share context between boundaries:
 
 ```tsx
 function App() {
-    const contextValue = useBoundaryContext(bridge, { shared: 'data' });
+    const contextValue = useBoundaryContext(bridge, {shared: 'data'});
+
+    // This register API to the Boundary which have the same contextValue
+    useRegister(bridge, "someAPI", { contextValue });
+
+    // This use API of the Boundary which have the same contextValue
+    const someAPI = useAPI(bridge, "someAPI", {contextValue});
 
     return (
         <div>
             <Boundary contextValue={contextValue}>
-                <ComponentA />
+                <ComponentA/>
             </Boundary>
 
             {/* This boundary shares the same context */}
             <Boundary contextValue={contextValue}>
-                <ComponentB /> {/* Can see ComponentA's APIs */}
+                <ComponentB/> {/* Can see ComponentA's APIs and "someAPI" registered above  */}
             </Boundary>
         </div>
     );
@@ -493,11 +502,11 @@ function ThemeButton() {
 - `useBoundaryPayload(bridge, options?)` - Get boundary payload
 - `useUpperBoundaryPayload(bridge, options?)` - Get parent boundary payload
 - `useBoundaryContext(bridge, payload?)` - Create context value for boundaries
-- `useTools(bridge)` - Get programmatic access methods
+- `useTools(bridge, options?)` - Get programmatic access methods
 
 ### Methods
-- `getBridgeAPI(bridge, name, options?)` - Global API access (outside components)
-- `getBridgeAPIAsync(bridge, name, options?)` - Async API access
+- `getBridgeAPI(bridge, name, options?)` -  API access (outside components), default access Global APIs
+- `getBridgeAPIAsync(bridge, name, options?)` - Async API access, default default access Global APIs
 
 ### Components
 - `createBoundary(bridge)` - Create boundary component factory

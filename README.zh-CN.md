@@ -9,7 +9,7 @@
 ## 为什么使用这个库？
 
 - **无属性传递**：无需通过属性传递 refs，即可从任何地方访问组件 API
-- **更好的性能**: API的更新不会导致冗余re-render,除了payload
+- **更好的性能**: API的更新不会导致冗余re-render
 - **灵活的边界**：通过 Boundary 控制 API 作用域
 - **类型安全**：完整的 TypeScript 支持，提供强类型的 API
 - **支持多实例**：注册同一 API 的多个实例
@@ -203,6 +203,8 @@ function MyComponent() {
     const payload = useBoundaryPayload(bridge);
     console.log(payload); // { theme: 'dark', user: 'john' }
 }
+// 或者可以在创建bridge时指定默认的payload
+const bridge = createBridge({ theme: 'dark', user: 'global' })
 ```
 
 ### 连接 Boundary
@@ -213,6 +215,12 @@ function MyComponent() {
 function App() {
     const contextValue = useBoundaryContext(bridge, { shared: 'data' });
     
+    // 这里会注册API到使用相同contextValue的Boundary上
+    useRegister(bridge, "someAPI", { contextValue });
+
+    // 这里会获取到使用相同contextValue的Boundary的API
+    const someAPI = useAPI(bridge, "someAPI", {contextValue});
+
     return (
         <div>
             <Boundary contextValue={contextValue}>
@@ -221,7 +229,7 @@ function App() {
             
             {/* 这个 Boundary 共享相同的上下文 */}
             <Boundary contextValue={contextValue}>
-                <ComponentB /> {/* 可以看到 ComponentA 的 API */}
+                <ComponentB /> {/* 可以看到 ComponentA 的 API，以及上面注册的“someAPI” */}
             </Boundary>
         </div>
     );
@@ -454,7 +462,7 @@ function ThemeButton() {
 
 ## 最佳实践
 
-1. **在模块级别创建 Bridge** - 不要在组件内部重新创建 Bridge
+1. **在顶级作用域创建 Bridge** - 不要在组件内部重新创建 Bridge
 2. **使用 TypeScript** - 定义你的 API 接口以获得更好的开发体验
 3. **处理未定义的 API** - 使用前始终检查 `apiRef.current`
 4. **使用有意义的名称** - API 名称应该描述其用途
@@ -494,11 +502,11 @@ function ThemeButton() {
 - `useBoundaryPayload(bridge, options?)` - 获取 Boundary payload
 - `useUpperBoundaryPayload(bridge, options?)` - 获取父 Boundary payload
 - `useBoundaryContext(bridge, payload?)` - 为 Boundary 创建上下文值
-- `useTools(bridge)` - 获取编程访问方法
+- `useTools(bridge, options?)` - 获取编程访问方法
 
 ### 方法
-- `getBridgeAPI(bridge, name, options?)` - 全局 API 访问（在组件外部）
-- `getBridgeAPIAsync(bridge, name, options?)` - 异步 API 访问
+- `getBridgeAPI(bridge, name, options?)` - API 访问（在组件外部），默认访问全局API
+- `getBridgeAPIAsync(bridge, name, options?)` - 异步 API 访问，默认访问全局API
 
 ### 组件
 - `createBoundary(bridge)` - 创建 Boundary 组件工厂
