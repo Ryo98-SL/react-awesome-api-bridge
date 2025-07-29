@@ -31,11 +31,7 @@
   },
   "exports": {
     ".": {
-      "types": {
-        "import": "",
-        "require": ""
-      },
-      "import": "./dist/es/index.mjs",
+      "import": "./dist/es/index.js",
       "require": "./dist/lib/index.js"
     }
   },
